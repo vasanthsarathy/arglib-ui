@@ -2,59 +2,133 @@
   box-sizing: border-box;
 }
 
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+
+:root {
+  --bg: #ffffff;
+  --ink: #101010;
+  --muted: #6b6b6b;
+  --panel: #f7f7f7;
+  --line: #e0e0e0;
+  --accent: #ff6a00;
+}
+
 body {
   margin: 0;
-  font-family: "IBM Plex Sans", system-ui, sans-serif;
-  background: #111111;
-  color: #f2f2f2;
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono",
+    monospace;
+  background: var(--bg);
+  color: var(--ink);
 }
 
 .app {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 32px 24px 64px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
-  gap: 24px;
   align-items: center;
-  border-bottom: 1px solid #2a2a2a;
-  padding-bottom: 20px;
+  gap: 24px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.header h1 {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .status {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
+  width: 8px;
+  height: 8px;
   display: inline-block;
   background: #444444;
 }
 
 .dot.ok {
-  background: #ff6a00;
+  background: var(--accent);
 }
 
 .dot.error {
   background: #b00020;
 }
 
-.panel {
-  margin-top: 28px;
-  background: #1a1a1a;
-  border: 1px solid #2a2a2a;
-  padding: 20px;
-  border-radius: 12px;
+.workspace {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 220px 1fr 220px;
+  gap: 0;
+  height: calc(100vh - 56px);
 }
 
-ul {
-  padding-left: 20px;
+.sidebar {
+  border-right: 1px solid var(--line);
+  padding: 10px 8px;
+  background: var(--panel);
+}
+
+.sidebar:last-child {
+  border-right: none;
+  border-left: 1px solid var(--line);
+}
+
+.sidebar h2 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.button {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  text-align: left;
+}
+
+.button:hover {
+  border-color: var(--accent);
+}
+
+.list {
+  display: grid;
+  gap: 6px;
+}
+
+.list-item {
+  border: 1px solid var(--line);
+  padding: 6px 8px;
+  background: #fff;
+  font-size: 12px;
+}
+
+.canvas {
+  background: #fff;
+  position: relative;
+}
+
+.graph-canvas {
+  position: absolute;
+  inset: 0;
 }
