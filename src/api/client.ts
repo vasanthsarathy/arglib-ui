@@ -1,5 +1,7 @@
 import type {
   EvidenceCardPayload,
+  DatasetLoadRequest,
+  DatasetLoadResponse,
   GraphPayload,
   GraphResponse,
   SupportingDocumentPayload,
@@ -75,6 +77,16 @@ export function addSupportingDocument(
   body: SupportingDocumentPayload,
 ): Promise<void> {
   return request(`/graphs/${graphId}/supporting-documents`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export function loadDataset(
+  body: DatasetLoadRequest,
+): Promise<DatasetLoadResponse> {
+  return request("/datasets/load", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),

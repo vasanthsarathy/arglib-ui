@@ -135,7 +135,7 @@ body {
 
 .footer {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1.5fr 1.5fr 1fr;
   gap: 8px;
   padding: 8px;
   border-top: 1px solid var(--line);
@@ -159,6 +159,10 @@ body {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
   margin-bottom: 8px;
+}
+
+.grid .input:first-child {
+  grid-column: span 3;
 }
 
 .input {

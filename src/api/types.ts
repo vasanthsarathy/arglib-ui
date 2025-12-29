@@ -16,3 +16,13 @@ export type EvidenceCardPayload = {
 export type SupportingDocumentPayload = {
   payload: Record<string, unknown>;
 };
+
+export type DatasetLoadRequest = {
+  path: string;
+  limit?: number;
+};
+
+export type DatasetLoadResponse = {
+  count: number;
+  items: Array<Record<string, unknown>>;
+};

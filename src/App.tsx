@@ -6,6 +6,7 @@ import {
   createGraph,
   fetchHealth,
   getGraph,
+  loadDataset,
   listEvidenceCards,
   listSupportingDocuments,
   runCredibility,
@@ -49,6 +50,12 @@ export default function App() {
   const [cardExcerpt, setCardExcerpt] = useState("");
   const [cards, setCards] = useState<Record<string, unknown>>({});
   const [docs, setDocs] = useState<Record<string, unknown>>({});
+  const [datasetPath, setDatasetPath] = useState(
+    "C:\\Users\\vasan\\Code\\arglib\\.external\\argument-mining\\processed_data\\augmented.jsonl",
+  );
+  const [datasetItems, setDatasetItems] = useState<
+    Array<Record<string, unknown>>
+  >([]);
 
   useEffect(() => {
     fetchHealth()
@@ -347,6 +354,50 @@ export default function App() {
             <div className="list-item">
               Cards: {Object.keys(cards).length}
             </div>
+          </div>
+        </div>
+        <div className="panel">
+          <h2>Datasets</h2>
+          <div className="grid">
+            <input
+              className="input"
+              placeholder="Dataset path"
+              value={datasetPath}
+              onChange={(event) => setDatasetPath(event.target.value)}
+            />
+            <button
+              className="button"
+              onClick={async () => {
+                const response = await loadDataset({
+                  path: datasetPath,
+                  limit: 50,
+                });
+                setDatasetItems(response.items);
+              }}
+            >
+              Load Dataset
+            </button>
+          </div>
+          <div className="list">
+            {datasetItems.length === 0 && (
+              <div className="list-item">No dataset loaded.</div>
+            )}
+            {datasetItems.map((item) => (
+              <button
+                key={item.id as string}
+                className="list-item"
+                onClick={async () => {
+                  if (!item.id) {
+                    return;
+                  }
+                  const data = await getGraph(item.id as string);
+                  setGraphId(data.id);
+                  setGraph(data.payload as GraphData);
+                }}
+              >
+                {item.topic ?? "Graph"} · {item.id}
+              </button>
+            ))}
           </div>
         </div>
       </section>
