@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import cytoscape, { Core, ElementDefinition } from "cytoscape";
 
 type GraphCanvasProps = {
@@ -8,6 +8,8 @@ type GraphCanvasProps = {
 export default function GraphCanvas({ elements }: GraphCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const cyRef = useRef<Core | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [panEnabled, setPanEnabled] = useState(true);
 
   useEffect(() => {
     if (!containerRef.current) {
@@ -25,10 +27,10 @@ export default function GraphCanvas({ elements }: GraphCanvasProps) {
         {
           selector: "node",
           style: {
-            "background-color": "#111111",
-            "border-color": "#ff6a00",
+            "background-color": "#ffffff",
+            "border-color": "#111111",
             "border-width": 1,
-            color: "#f2f2f2",
+            color: "#111111",
             label: "data(label)",
             "font-family": "IBM Plex Mono, monospace",
             "font-size": "12px",
@@ -36,8 +38,8 @@ export default function GraphCanvas({ elements }: GraphCanvasProps) {
             "text-max-width": "140px",
             "text-valign": "center",
             "text-halign": "center",
-            width: "150px",
-            height: "60px",
+            width: "170px",
+            height: "70px",
             shape: "rectangle",
           },
         },
@@ -83,24 +85,64 @@ export default function GraphCanvas({ elements }: GraphCanvasProps) {
     cyRef.current.layout({ name: "breadthfirst", padding: 10 }).run();
   }, [elements]);
 
+  useEffect(() => {
+    if (!cyRef.current) {
+      return;
+    }
+    cyRef.current.userPanningEnabled(panEnabled);
+  }, [panEnabled]);
+
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy) {
+      return;
+    }
+    const handler = () => setZoom(Number(cy.zoom().toFixed(2)));
+    cy.on("zoom", handler);
+    return () => {
+      cy.off("zoom", handler);
+    };
+  }, []);
+
   return (
     <div className="graph-wrapper">
       <div className="graph-toolbar">
         <button
           className="button"
-          onClick={() => cyRef.current?.zoom(cyRef.current.zoom() * 1.1)}
+          onClick={() => {
+            const cy = cyRef.current;
+            if (!cy) {
+              return;
+            }
+            cy.zoom(cy.zoom() * 1.1);
+            cy.center();
+          }}
         >
           Zoom In
         </button>
         <button
           className="button"
-          onClick={() => cyRef.current?.zoom(cyRef.current.zoom() * 0.9)}
+          onClick={() => {
+            const cy = cyRef.current;
+            if (!cy) {
+              return;
+            }
+            cy.zoom(cy.zoom() * 0.9);
+            cy.center();
+          }}
         >
           Zoom Out
         </button>
         <button className="button" onClick={() => cyRef.current?.fit()}>
           Fit
         </button>
+        <button
+          className="button"
+          onClick={() => setPanEnabled((prev) => !prev)}
+        >
+          Pan: {panEnabled ? "On" : "Off"}
+        </button>
+        <div className="zoom-indicator">Zoom: {zoom}x</div>
       </div>
       <div ref={containerRef} className="graph-canvas" />
     </div>

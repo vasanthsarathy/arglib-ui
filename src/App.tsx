@@ -56,6 +56,7 @@ export default function App() {
   const [datasetItems, setDatasetItems] = useState<
     Array<Record<string, unknown>>
   >([]);
+  const [selectedDatasetId, setSelectedDatasetId] = useState("");
 
   useEffect(() => {
     fetchHealth()
@@ -373,31 +374,38 @@ export default function App() {
                   limit: 50,
                 });
                 setDatasetItems(response.items);
+                setSelectedDatasetId("");
               }}
             >
               Load Dataset
             </button>
           </div>
-          <div className="list">
-            {datasetItems.length === 0 && (
-              <div className="list-item">No dataset loaded.</div>
-            )}
-            {datasetItems.map((item) => (
-              <button
-                key={item.id as string}
-                className="list-item"
-                onClick={async () => {
-                  if (!item.id) {
-                    return;
-                  }
-                  const data = await getGraph(item.id as string);
-                  setGraphId(data.id);
-                  setGraph(data.payload as GraphData);
-                }}
-              >
-                {item.topic ?? "Graph"} · {item.id}
-              </button>
-            ))}
+          <div className="grid">
+            <select
+              className="input"
+              value={selectedDatasetId}
+              onChange={(event) => setSelectedDatasetId(event.target.value)}
+            >
+              <option value="">Select a graph</option>
+              {datasetItems.map((item) => (
+                <option key={item.id as string} value={item.id as string}>
+                  {item.topic ?? "Graph"} · {item.id}
+                </option>
+              ))}
+            </select>
+            <button
+              className="button"
+              onClick={async () => {
+                if (!selectedDatasetId) {
+                  return;
+                }
+                const data = await getGraph(selectedDatasetId);
+                setGraphId(data.id);
+                setGraph(data.payload as GraphData);
+              }}
+            >
+              Load Graph
+            </button>
           </div>
         </div>
       </section>
