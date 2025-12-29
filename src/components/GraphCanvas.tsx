@@ -18,6 +18,9 @@ export default function GraphCanvas({ elements }: GraphCanvasProps) {
       container: containerRef.current,
       elements,
       layout: { name: "breadthfirst", padding: 10 },
+      wheelSensitivity: 0.2,
+      minZoom: 0.2,
+      maxZoom: 2.5,
       style: [
         {
           selector: "node",
@@ -34,7 +37,7 @@ export default function GraphCanvas({ elements }: GraphCanvasProps) {
             "text-valign": "center",
             "text-halign": "center",
             width: "150px",
-            height: "48px",
+            height: "60px",
             shape: "rectangle",
           },
         },
@@ -42,9 +45,10 @@ export default function GraphCanvas({ elements }: GraphCanvasProps) {
           selector: "edge",
           style: {
             width: 1,
-            "line-color": "#444444",
-            "target-arrow-color": "#444444",
+            "line-color": "#333333",
+            "target-arrow-color": "#333333",
             "target-arrow-shape": "triangle",
+            "arrow-scale": 0.8,
             label: "data(label)",
             color: "#666666",
             "font-family": "IBM Plex Mono, monospace",
@@ -52,6 +56,7 @@ export default function GraphCanvas({ elements }: GraphCanvasProps) {
             "text-background-color": "#ffffff",
             "text-background-opacity": 1,
             "text-background-padding": "2px",
+            "curve-style": "bezier",
           },
         },
         {
@@ -78,5 +83,26 @@ export default function GraphCanvas({ elements }: GraphCanvasProps) {
     cyRef.current.layout({ name: "breadthfirst", padding: 10 }).run();
   }, [elements]);
 
-  return <div ref={containerRef} className="graph-canvas" />;
+  return (
+    <div className="graph-wrapper">
+      <div className="graph-toolbar">
+        <button
+          className="button"
+          onClick={() => cyRef.current?.zoom(cyRef.current.zoom() * 1.1)}
+        >
+          Zoom In
+        </button>
+        <button
+          className="button"
+          onClick={() => cyRef.current?.zoom(cyRef.current.zoom() * 0.9)}
+        >
+          Zoom Out
+        </button>
+        <button className="button" onClick={() => cyRef.current?.fit()}>
+          Fit
+        </button>
+      </div>
+      <div ref={containerRef} className="graph-canvas" />
+    </div>
+  );
 }

@@ -1,8 +1,8 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+
 * {
   box-sizing: border-box;
 }
-
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap");
 
 :root {
   --bg: #ffffff;
@@ -76,7 +76,7 @@ body {
   display: grid;
   grid-template-columns: 220px 1fr 220px;
   gap: 0;
-  height: calc(100vh - 56px);
+  min-height: 420px;
 }
 
 .sidebar {
@@ -128,9 +128,30 @@ body {
   position: relative;
 }
 
-.graph-canvas {
+.graph-wrapper {
   position: absolute;
   inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.graph-toolbar {
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+  z-index: 2;
+}
+
+.graph-toolbar .button {
+  width: auto;
+  padding: 4px 6px;
+}
+
+.graph-canvas {
+  flex: 1;
+  min-height: 300px;
 }
 
 .footer {
