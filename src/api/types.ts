@@ -8,3 +8,11 @@ export type GraphResponse = {
   id: string;
   payload: Record<string, unknown>;
 };
+
+export type EvidenceCardPayload = {
+  payload: Record<string, unknown>;
+};
+
+export type SupportingDocumentPayload = {
+  payload: Record<string, unknown>;
+};

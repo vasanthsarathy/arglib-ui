@@ -132,3 +132,44 @@ body {
   position: absolute;
   inset: 0;
 }
+
+.footer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 8px;
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.panel {
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 8px;
+}
+
+.panel h2 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.input {
+  border: 1px solid var(--line);
+  padding: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  width: 100%;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+}

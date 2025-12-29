@@ -1,13 +1,11 @@
 import { useEffect, useRef } from "react";
-import cytoscape, { Core } from "cytoscape";
+import cytoscape, { Core, ElementDefinition } from "cytoscape";
 
-const baseElements = [
-  { data: { id: "c1", label: "Claim 1" } },
-  { data: { id: "c2", label: "Claim 2" } },
-  { data: { id: "e1", source: "c1", target: "c2", label: "support" } },
-];
+type GraphCanvasProps = {
+  elements: ElementDefinition[];
+};
 
-export default function GraphCanvas() {
+export default function GraphCanvas({ elements }: GraphCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const cyRef = useRef<Core | null>(null);
 
@@ -18,7 +16,7 @@ export default function GraphCanvas() {
 
     cyRef.current = cytoscape({
       container: containerRef.current,
-      elements: baseElements,
+      elements,
       layout: { name: "breadthfirst", padding: 10 },
       style: [
         {
@@ -71,6 +69,14 @@ export default function GraphCanvas() {
       cyRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    if (!cyRef.current) {
+      return;
+    }
+    cyRef.current.json({ elements });
+    cyRef.current.layout({ name: "breadthfirst", padding: 10 }).run();
+  }, [elements]);
 
   return <div ref={containerRef} className="graph-canvas" />;
 }
