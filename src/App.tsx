@@ -227,10 +227,19 @@ export default function App() {
       <main className="workspace">
         <aside className="sidebar">
           <h2>Claims</h2>
-          <button className="button">Add Claim</button>
+          <button className="button" onClick={handleAddClaim}>
+            Add Claim
+          </button>
           <div className="list">
-            <div className="list-item">Claim 1</div>
-            <div className="list-item">Claim 2</div>
+            {graph && Object.keys(graph.units || {}).length === 0 && (
+              <div className="list-item">No claims yet.</div>
+            )}
+            {graph &&
+              Object.values(graph.units || {}).map((unit) => (
+                <div key={unit.id} className="list-item">
+                  {unit.id}: {unit.text}
+                </div>
+              ))}
           </div>
         </aside>
         <section className="canvas">
