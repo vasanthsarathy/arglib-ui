@@ -95,9 +95,21 @@ export default function App() {
     if (!graph) {
       return [];
     }
-    const nodes = Object.values(graph.units || {}).map((unit) => ({
-      data: { id: unit.id, label: unit.text },
-    }));
+    const nodes = Object.values(graph.units || {}).map((unit) => {
+      const text = unit.text || "";
+      const maxChars = 26;
+      const lines = Math.max(1, Math.ceil(text.length / maxChars));
+      const width = Math.min(260, Math.max(140, maxChars * 6));
+      const height = Math.min(140, 30 + lines * 16);
+      return {
+        data: {
+          id: unit.id,
+          label: text,
+          width,
+          height,
+        },
+      };
+    });
     const edges = (graph.relations || []).map((rel, index) => ({
       data: {
         id: `e${index}`,

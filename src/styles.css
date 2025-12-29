@@ -142,6 +142,7 @@ body {
   border-bottom: 1px solid var(--line);
   background: #fff;
   z-index: 2;
+  align-items: center;
 }
 
 .graph-toolbar .button {
@@ -153,6 +154,18 @@ body {
   font-size: 12px;
   color: var(--muted);
   align-self: center;
+}
+
+.zoom-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.zoom-step input[type="range"] {
+  width: 100px;
 }
 
 .graph-canvas {

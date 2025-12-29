@@ -10,6 +10,7 @@ export default function GraphCanvas({ elements }: GraphCanvasProps) {
   const cyRef = useRef<Core | null>(null);
   const [zoom, setZoom] = useState(1);
   const [panEnabled, setPanEnabled] = useState(true);
+  const [wheelStep, setWheelStep] = useState(0.08);
 
   useEffect(() => {
     if (!containerRef.current) {
@@ -35,11 +36,11 @@ export default function GraphCanvas({ elements }: GraphCanvasProps) {
             "font-family": "IBM Plex Mono, monospace",
             "font-size": "12px",
             "text-wrap": "wrap",
-            "text-max-width": "140px",
+            "text-max-width": "160px",
             "text-valign": "center",
             "text-halign": "center",
-            width: "170px",
-            height: "70px",
+            width: "data(width)",
+            height: "data(height)",
             shape: "rectangle",
           },
         },
@@ -59,6 +60,8 @@ export default function GraphCanvas({ elements }: GraphCanvasProps) {
             "text-background-opacity": 1,
             "text-background-padding": "2px",
             "curve-style": "bezier",
+            "text-rotation": "autorotate",
+            "text-margin-y": -8,
           },
         },
         {
@@ -91,6 +94,32 @@ export default function GraphCanvas({ elements }: GraphCanvasProps) {
     }
     cyRef.current.userPanningEnabled(panEnabled);
   }, [panEnabled]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const cy = cyRef.current;
+    if (!container || !cy) {
+      return;
+    }
+    const handler = (event: WheelEvent) => {
+      event.preventDefault();
+      const direction = event.deltaY > 0 ? -1 : 1;
+      const nextZoom = Math.min(
+        cy.maxZoom(),
+        Math.max(cy.minZoom(), cy.zoom() + direction * wheelStep),
+      );
+      cy.zoom({
+        level: nextZoom,
+        renderedPosition: { x: event.offsetX, y: event.offsetY },
+      });
+    };
+    cy.userZoomingEnabled(false);
+    container.addEventListener("wheel", handler, { passive: false });
+    return () => {
+      container.removeEventListener("wheel", handler);
+      cy.userZoomingEnabled(true);
+    };
+  }, [wheelStep]);
 
   useEffect(() => {
     const cy = cyRef.current;
@@ -138,10 +167,34 @@ export default function GraphCanvas({ elements }: GraphCanvasProps) {
         </button>
         <button
           className="button"
+          onClick={() => {
+            const cy = cyRef.current;
+            if (!cy) {
+              return;
+            }
+            cy.zoom(1);
+            cy.center();
+          }}
+        >
+          Reset
+        </button>
+        <button
+          className="button"
           onClick={() => setPanEnabled((prev) => !prev)}
         >
           Pan: {panEnabled ? "On" : "Off"}
         </button>
+        <label className="zoom-step">
+          Wheel Step
+          <input
+            type="range"
+            min="0.02"
+            max="0.2"
+            step="0.01"
+            value={wheelStep}
+            onChange={(event) => setWheelStep(Number(event.target.value))}
+          />
+        </label>
         <div className="zoom-indicator">Zoom: {zoom}x</div>
       </div>
       <div ref={containerRef} className="graph-canvas" />
