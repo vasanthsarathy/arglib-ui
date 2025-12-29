@@ -1,0 +1,6 @@
+# .gitignore for arglib-ui
+node_modules/
+dist/
+.env
+.vscode/
+.idea/
