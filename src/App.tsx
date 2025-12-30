@@ -94,6 +94,18 @@ export default function App() {
       .catch(() => undefined);
   }, [graphId]);
 
+  useEffect(() => {
+    if (!selection || selection.type !== "node" || !graph) {
+      return;
+    }
+    const unit = graph.units?.[selection.id];
+    if (!unit) {
+      return;
+    }
+    setClaimText(unit.text ?? "");
+    setClaimType(unit.type ?? "fact");
+  }, [selection, graph]);
+
   const elements = useMemo(() => {
     if (!graph) {
       return [];

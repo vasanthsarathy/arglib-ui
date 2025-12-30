@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import cytoscape, { Core, ElementDefinition, EventObjectNode } from "cytoscape";
+import edgehandles from "cytoscape-edgehandles";
 
 type GraphCanvasProps = {
   elements: ElementDefinition[];
@@ -31,6 +32,7 @@ export default function GraphCanvas({
       return;
     }
 
+    cytoscape.use(edgehandles);
     cyRef.current = cytoscape({
       container: containerRef.current,
       elements,
@@ -109,6 +111,33 @@ export default function GraphCanvas({
       cyRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy) {
+      return;
+    }
+    const handler = (event: any, source: any, target: any) => {
+      if (!source || !target) {
+        return;
+      }
+      onAddEdge(source.id(), target.id());
+    };
+    const eh = (cy as any).edgehandles?.({
+      handleNodes: "node",
+      handlePosition: "right middle",
+      handleSize: 10,
+      handleColor: "#ff6a00",
+      handleLineType: "ghost",
+      handleLineColor: "#ff6a00",
+      edgeType: () => "flat",
+      complete: handler,
+    });
+    return () => {
+      eh?.disableDrawMode();
+      eh?.destroy();
+    };
+  }, [onAddEdge]);
 
   useEffect(() => {
     if (!cyRef.current) {
@@ -255,6 +284,18 @@ export default function GraphCanvas({
           onClick={() => {
             setEdgeMode((prev) => !prev);
             setEdgeSource(null);
+            const cy = cyRef.current;
+            if (!cy) {
+              return;
+            }
+            const plugin = (cy as any).edgehandles?.();
+            if (plugin) {
+              if (!edgeMode) {
+                plugin.enableDrawMode();
+              } else {
+                plugin.disableDrawMode();
+              }
+            }
           }}
         >
           Edge: {edgeMode ? "On" : "Off"}
