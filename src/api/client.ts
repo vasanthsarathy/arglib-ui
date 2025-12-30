@@ -66,6 +66,16 @@ export function addEvidenceCard(
   });
 }
 
+export function attachEvidenceCard(
+  graphId: string,
+  unitId: string,
+  cardId: string,
+): Promise<void> {
+  return request(`/graphs/${graphId}/units/${unitId}/evidence-cards/${cardId}`, {
+    method: "POST",
+  });
+}
+
 export function listSupportingDocuments(
   graphId: string,
 ): Promise<Record<string, unknown>> {

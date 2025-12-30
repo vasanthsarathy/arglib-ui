@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import GraphCanvas from "./components/GraphCanvas";
 import {
   addEvidenceCard,
+  attachEvidenceCard,
   addSupportingDocument,
   createGraph,
   fetchHealth,
@@ -48,6 +49,7 @@ export default function App() {
   const [cardTitle, setCardTitle] = useState("");
   const [cardDocId, setCardDocId] = useState("");
   const [cardExcerpt, setCardExcerpt] = useState("");
+  const [attachCardId, setAttachCardId] = useState("");
   const [cards, setCards] = useState<Record<string, unknown>>({});
   const [docs, setDocs] = useState<Record<string, unknown>>({});
   const [datasetPath, setDatasetPath] = useState(
@@ -212,6 +214,15 @@ export default function App() {
     setCardExcerpt("");
   };
 
+  const handleAttachEvidence = async (unitId: string) => {
+    if (!graphId || !attachCardId) {
+      return;
+    }
+    await attachEvidenceCard(graphId, unitId, attachCardId);
+    const data = await getGraph(graphId);
+    setGraph(data.payload as GraphData);
+  };
+
   return (
     <div className="app">
       <header className="header">
@@ -237,7 +248,34 @@ export default function App() {
             {graph &&
               Object.values(graph.units || {}).map((unit) => (
                 <div key={unit.id} className="list-item">
-                  {unit.id}: {unit.text}
+                  <div className="claim-row">
+                    <span>
+                      {unit.id}: {unit.text}
+                    </span>
+                    <span className="badge">
+                      evidence: {(unit as any).evidence_ids?.length ?? 0}
+                    </span>
+                  </div>
+                  <div className="attach-row">
+                    <select
+                      className="input"
+                      value={attachCardId}
+                      onChange={(event) => setAttachCardId(event.target.value)}
+                    >
+                      <option value="">Select evidence card</option>
+                      {Object.keys(cards).map((cardKey) => (
+                        <option key={cardKey} value={cardKey}>
+                          {cardKey}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      className="button"
+                      onClick={() => handleAttachEvidence(unit.id)}
+                    >
+                      Attach
+                    </button>
+                  </div>
                 </div>
               ))}
           </div>

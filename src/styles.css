@@ -123,6 +123,30 @@ body {
   font-size: 12px;
 }
 
+.claim-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.attach-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.attach-row .input {
+  flex: 1;
+}
+
+.badge {
+  border: 1px solid var(--line);
+  padding: 2px 6px;
+  font-size: 10px;
+  background: var(--panel);
+}
+
 .canvas {
   background: #fff;
   position: relative;
