@@ -1,16 +1,30 @@
 import { useEffect, useRef, useState } from "react";
-import cytoscape, { Core, ElementDefinition } from "cytoscape";
+import cytoscape, { Core, ElementDefinition, EventObjectNode } from "cytoscape";
 
 type GraphCanvasProps = {
   elements: ElementDefinition[];
+  onSelect: (selection: {
+    type: "node" | "edge";
+    id: string;
+    data: Record<string, unknown>;
+  } | null) => void;
+  onAddEdge: (src: string, dst: string) => void;
+  onAddNode: () => void;
 };
 
-export default function GraphCanvas({ elements }: GraphCanvasProps) {
+export default function GraphCanvas({
+  elements,
+  onSelect,
+  onAddEdge,
+  onAddNode,
+}: GraphCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const cyRef = useRef<Core | null>(null);
   const [zoom, setZoom] = useState(1);
   const [panEnabled, setPanEnabled] = useState(true);
   const [wheelStep, setWheelStep] = useState(0.08);
+  const [edgeMode, setEdgeMode] = useState(false);
+  const [edgeSource, setEdgeSource] = useState<string | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) {
@@ -62,6 +76,22 @@ export default function GraphCanvas({ elements }: GraphCanvasProps) {
             "curve-style": "bezier",
             "text-rotation": "autorotate",
             "text-margin-y": -8,
+          },
+        },
+        {
+          selector: 'edge[kind = "support"]',
+          style: {
+            color: "#188038",
+            "line-color": "#188038",
+            "target-arrow-color": "#188038",
+          },
+        },
+        {
+          selector: 'edge[kind = "attack"]',
+          style: {
+            color: "#b00020",
+            "line-color": "#b00020",
+            "target-arrow-color": "#b00020",
           },
         },
         {
@@ -128,10 +158,46 @@ export default function GraphCanvas({ elements }: GraphCanvasProps) {
     }
     const handler = () => setZoom(Number(cy.zoom().toFixed(2)));
     cy.on("zoom", handler);
+    const onTap = (event: EventObjectNode) => {
+      const target = event.target;
+      if (!target || !target.data) {
+        return;
+      }
+      if (edgeMode) {
+        const nodeId = target.id();
+        if (!edgeSource) {
+          setEdgeSource(nodeId);
+        } else if (edgeSource !== nodeId) {
+          onAddEdge(edgeSource, nodeId);
+          setEdgeSource(null);
+        }
+        return;
+      }
+      onSelect({
+        type: "node",
+        id: target.id(),
+        data: target.data() as Record<string, unknown>,
+      });
+    };
+    const onEdgeTap = (event: EventObjectNode) => {
+      const target = event.target;
+      onSelect({
+        type: "edge",
+        id: target.id(),
+        data: target.data() as Record<string, unknown>,
+      });
+    };
+    const onBgTap = () => onSelect(null);
+    cy.on("tap", "node", onTap);
+    cy.on("tap", "edge", onEdgeTap);
+    cy.on("tap", onBgTap);
     return () => {
       cy.off("zoom", handler);
+      cy.off("tap", "node", onTap);
+      cy.off("tap", "edge", onEdgeTap);
+      cy.off("tap", onBgTap);
     };
-  }, []);
+  }, [edgeMode, edgeSource, onAddEdge, onSelect]);
 
   return (
     <div className="graph-wrapper">
@@ -184,6 +250,18 @@ export default function GraphCanvas({ elements }: GraphCanvasProps) {
         >
           Pan: {panEnabled ? "On" : "Off"}
         </button>
+        <button
+          className="button"
+          onClick={() => {
+            setEdgeMode((prev) => !prev);
+            setEdgeSource(null);
+          }}
+        >
+          Edge: {edgeMode ? "On" : "Off"}
+        </button>
+        <button className="button" onClick={onAddNode}>
+          + Claim
+        </button>
         <label className="zoom-step">
           Wheel Step
           <input
@@ -196,6 +274,9 @@ export default function GraphCanvas({ elements }: GraphCanvasProps) {
           />
         </label>
         <div className="zoom-indicator">Zoom: {zoom}x</div>
+        {edgeSource && (
+          <div className="zoom-indicator">Edge from {edgeSource}</div>
+        )}
       </div>
       <div ref={containerRef} className="graph-canvas" />
     </div>

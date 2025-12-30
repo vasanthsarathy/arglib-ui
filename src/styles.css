@@ -74,24 +74,18 @@ body {
 .workspace {
   flex: 1;
   display: grid;
-  grid-template-columns: 220px 1fr 220px;
+  grid-template-columns: 260px 1fr 320px;
   gap: 0;
   min-height: 420px;
 }
 
-.sidebar {
-  border-right: 1px solid var(--line);
-  padding: 10px 8px;
-  background: var(--panel);
-  overflow: hidden;
+.panel {
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 8px;
 }
 
-.sidebar:last-child {
-  border-right: none;
-  border-left: 1px solid var(--line);
-}
-
-.sidebar h2 {
+.panel h2 {
   margin: 0 0 10px;
   font-size: 14px;
   font-weight: 600;
@@ -115,7 +109,7 @@ body {
 .list {
   display: grid;
   gap: 6px;
-  max-height: calc(100vh - 220px);
+  max-height: 220px;
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -154,6 +148,8 @@ body {
 .canvas {
   background: #fff;
   position: relative;
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
 }
 
 .graph-wrapper {
@@ -201,25 +197,28 @@ body {
   min-height: 300px;
 }
 
-.footer {
-  display: grid;
-  grid-template-columns: 1.5fr 1.5fr 1fr;
-  gap: 8px;
-  padding: 8px;
-  border-top: 1px solid var(--line);
+.inspector {
+  border-right: 1px solid var(--line);
   background: var(--panel);
 }
 
-.panel {
-  border: 1px solid var(--line);
-  background: #fff;
+.right-panels {
+  display: grid;
+  grid-template-rows: 1.2fr 1.2fr 0.8fr;
+  gap: 8px;
   padding: 8px;
+  background: var(--panel);
+  overflow: hidden;
 }
 
-.panel h2 {
-  margin: 0 0 8px;
-  font-size: 13px;
-  font-weight: 600;
+.right-panels .panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.right-panels .list {
+  flex: 1;
+  max-height: none;
 }
 
 .grid {
