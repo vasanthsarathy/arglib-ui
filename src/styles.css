@@ -83,6 +83,7 @@ body {
   border-right: 1px solid var(--line);
   padding: 10px 8px;
   background: var(--panel);
+  overflow: hidden;
 }
 
 .sidebar:last-child {
@@ -114,6 +115,9 @@ body {
 .list {
   display: grid;
   gap: 6px;
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .list-item {
