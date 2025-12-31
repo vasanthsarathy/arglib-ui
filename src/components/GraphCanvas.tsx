@@ -1,9 +1,23 @@
-import { useEffect, useRef, useState } from "react";
-import cytoscape, { Core, ElementDefinition, EventObjectNode } from "cytoscape";
-import edgehandles from "cytoscape-edgehandles";
+import { useEffect, useMemo, useState } from "react";
+import ReactFlow, {
+  Background,
+  MarkerType,
+  Position,
+  ReactFlowInstance,
+  applyNodeChanges,
+  applyEdgeChanges,
+  type Edge,
+  type Node,
+  type NodeChange,
+  type EdgeChange,
+  Handle,
+} from "reactflow";
+import dagre from "dagre";
+import "reactflow/dist/style.css";
 
 type GraphCanvasProps = {
-  elements: ElementDefinition[];
+  elements: Array<{ data?: Record<string, unknown> }>;
+  highlightNodes?: string[];
   onSelect: (selection: {
     type: "node" | "edge";
     id: string;
@@ -13,220 +27,168 @@ type GraphCanvasProps = {
   onAddNode: () => void;
 };
 
+const ClaimNode = ({
+  data,
+}: {
+  data: {
+    label: string;
+    id: string;
+    scoreBadge?:
+      | { label: string; color: string; bgColor: string; borderColor: string }
+      | null;
+  };
+}) => {
+  return (
+    <div className="rf-node">
+      <div className="rf-node-id">{data.id}</div>
+      {data.scoreBadge && (
+        <div
+          className="rf-node-score"
+          style={{
+            color: data.scoreBadge.color,
+            background: data.scoreBadge.bgColor,
+            borderColor: data.scoreBadge.borderColor,
+          }}
+        >
+          {data.scoreBadge.label}
+        </div>
+      )}
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="rf-handle"
+      />
+      <div className="rf-label">{data.label}</div>
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="rf-handle"
+      />
+    </div>
+  );
+};
+
 export default function GraphCanvas({
   elements,
+  highlightNodes = [],
   onSelect,
   onAddEdge,
   onAddNode,
 }: GraphCanvasProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const cyRef = useRef<Core | null>(null);
   const [zoom, setZoom] = useState(1);
   const [panEnabled, setPanEnabled] = useState(true);
-  const [wheelStep, setWheelStep] = useState(0.08);
-  const [edgeMode, setEdgeMode] = useState(false);
-  const [edgeSource, setEdgeSource] = useState<string | null>(null);
+  const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [edges, setEdges] = useState<Edge[]>([]);
+
+  const nodeTypes = useMemo(() => ({ claim: ClaimNode }), []);
+
+  const highlightSet = useMemo(
+    () => new Set(highlightNodes),
+    [highlightNodes],
+  );
 
   useEffect(() => {
-    if (!containerRef.current) {
-      return;
+    const positionMap = new Map(nodes.map((node) => [node.id, node.position]));
+    const nextNodes: Node[] = [];
+    const nextEdges: Edge[] = [];
+    let index = 0;
+
+    for (const element of elements) {
+      const data = element.data ?? {};
+      const id = String(data.id ?? "");
+      const isEdge = "source" in data && "target" in data;
+      if (isEdge) {
+        const kind = String(data.kind ?? data.label ?? "support");
+        const color = kind === "attack" ? "#b00020" : "#188038";
+        nextEdges.push({
+          id,
+          source: String(data.source),
+          target: String(data.target),
+          label: String(data.label ?? kind),
+          data: { kind },
+          markerEnd: { type: MarkerType.ArrowClosed, color },
+          style: { stroke: color, strokeWidth: 1 },
+          labelStyle: { fill: color, fontSize: 10, fontFamily: "IBM Plex Mono" },
+        });
+        continue;
+      }
+      const label = String(data.label ?? "");
+      const scoreBadge =
+        (data.scoreBadge as
+          | { label: string; color: string; bgColor: string; borderColor: string }
+          | null
+          | undefined) ?? null;
+      const width = Number(data.width ?? 180);
+      const height = Number(data.height ?? 80);
+      const existingPos = positionMap.get(id);
+      const position =
+        existingPos ?? {
+          x: (index % 4) * 240,
+          y: Math.floor(index / 4) * 160,
+        };
+      index += 1;
+      nextNodes.push({
+        id,
+        type: "claim",
+        data: { label, id, scoreBadge },
+        position,
+        style: { width, height },
+        className: highlightSet.has(id) ? "rf-node-highlight" : "",
+      });
     }
 
-    cytoscape.use(edgehandles);
-    cyRef.current = cytoscape({
-      container: containerRef.current,
-      elements,
-      layout: { name: "breadthfirst", padding: 10 },
-      wheelSensitivity: 0.2,
-      minZoom: 0.2,
-      maxZoom: 2.5,
-      style: [
-        {
-          selector: "node",
-          style: {
-            "background-color": "#ffffff",
-            "border-color": "#111111",
-            "border-width": 1,
-            color: "#111111",
-            label: "data(label)",
-            "font-family": "IBM Plex Mono, monospace",
-            "font-size": "12px",
-            "text-wrap": "wrap",
-            "text-max-width": "160px",
-            "text-valign": "center",
-            "text-halign": "center",
-            width: "data(width)",
-            height: "data(height)",
-            shape: "rectangle",
-          },
-        },
-        {
-          selector: "edge",
-          style: {
-            width: 1,
-            "line-color": "#333333",
-            "target-arrow-color": "#333333",
-            "target-arrow-shape": "triangle",
-            "arrow-scale": 0.8,
-            label: "data(label)",
-            color: "#666666",
-            "font-family": "IBM Plex Mono, monospace",
-            "font-size": "10px",
-            "text-background-color": "#ffffff",
-            "text-background-opacity": 1,
-            "text-background-padding": "2px",
-            "curve-style": "bezier",
-            "text-rotation": "autorotate",
-            "text-margin-y": -8,
-          },
-        },
-        {
-          selector: 'edge[kind = "support"]',
-          style: {
-            color: "#188038",
-            "line-color": "#188038",
-            "target-arrow-color": "#188038",
-          },
-        },
-        {
-          selector: 'edge[kind = "attack"]',
-          style: {
-            color: "#b00020",
-            "line-color": "#b00020",
-            "target-arrow-color": "#b00020",
-          },
-        },
-        {
-          selector: "node:selected",
-          style: {
-            "border-width": 2,
-            "border-color": "#ff6a00",
-          },
-        },
-      ],
+    setNodes(nextNodes);
+    setEdges(nextEdges);
+  }, [elements, highlightSet]);
+
+  const onNodesChange = (changes: NodeChange[]) => {
+    setNodes((prev) => applyNodeChanges(changes, prev));
+  };
+
+  const onEdgesChange = (changes: EdgeChange[]) => {
+    setEdges((prev) => applyEdgeChanges(changes, prev));
+  };
+
+  const layoutLeftToRight = () => {
+    const g = new dagre.graphlib.Graph();
+    g.setDefaultEdgeLabel(() => ({}));
+    g.setGraph({
+      rankdir: "LR",
+      nodesep: 40,
+      ranksep: 80,
     });
 
-    return () => {
-      cyRef.current?.destroy();
-      cyRef.current = null;
-    };
-  }, []);
-
-  useEffect(() => {
-    const cy = cyRef.current;
-    if (!cy) {
-      return;
-    }
-    const handler = (event: any, source: any, target: any) => {
-      if (!source || !target) {
-        return;
-      }
-      onAddEdge(source.id(), target.id());
-    };
-    const eh = (cy as any).edgehandles?.({
-      handleNodes: "node",
-      handlePosition: "right middle",
-      handleSize: 10,
-      handleColor: "#ff6a00",
-      handleLineType: "ghost",
-      handleLineColor: "#ff6a00",
-      edgeType: () => "flat",
-      complete: handler,
+    nodes.forEach((node) => {
+      const width = Number(node.style?.width ?? 180);
+      const height = Number(node.style?.height ?? 80);
+      g.setNode(node.id, { width, height });
     });
-    return () => {
-      eh?.disableDrawMode();
-      eh?.destroy();
-    };
-  }, [onAddEdge]);
+    edges.forEach((edge) => {
+      g.setEdge(edge.source, edge.target);
+    });
 
-  useEffect(() => {
-    if (!cyRef.current) {
-      return;
-    }
-    cyRef.current.json({ elements });
-    cyRef.current.layout({ name: "breadthfirst", padding: 10 }).run();
-  }, [elements]);
+    dagre.layout(g);
 
-  useEffect(() => {
-    if (!cyRef.current) {
-      return;
-    }
-    cyRef.current.userPanningEnabled(panEnabled);
-  }, [panEnabled]);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    const cy = cyRef.current;
-    if (!container || !cy) {
-      return;
-    }
-    const handler = (event: WheelEvent) => {
-      event.preventDefault();
-      const direction = event.deltaY > 0 ? -1 : 1;
-      const nextZoom = Math.min(
-        cy.maxZoom(),
-        Math.max(cy.minZoom(), cy.zoom() + direction * wheelStep),
-      );
-      cy.zoom({
-        level: nextZoom,
-        renderedPosition: { x: event.offsetX, y: event.offsetY },
-      });
-    };
-    cy.userZoomingEnabled(false);
-    container.addEventListener("wheel", handler, { passive: false });
-    return () => {
-      container.removeEventListener("wheel", handler);
-      cy.userZoomingEnabled(true);
-    };
-  }, [wheelStep]);
-
-  useEffect(() => {
-    const cy = cyRef.current;
-    if (!cy) {
-      return;
-    }
-    const handler = () => setZoom(Number(cy.zoom().toFixed(2)));
-    cy.on("zoom", handler);
-    const onTap = (event: EventObjectNode) => {
-      const target = event.target;
-      if (!target || !target.data) {
-        return;
+    const nextNodes = nodes.map((node) => {
+      const layout = g.node(node.id);
+      if (!layout) {
+        return node;
       }
-      if (edgeMode) {
-        const nodeId = target.id();
-        if (!edgeSource) {
-          setEdgeSource(nodeId);
-        } else if (edgeSource !== nodeId) {
-          onAddEdge(edgeSource, nodeId);
-          setEdgeSource(null);
-        }
-        return;
-      }
-      onSelect({
-        type: "node",
-        id: target.id(),
-        data: target.data() as Record<string, unknown>,
-      });
-    };
-    const onEdgeTap = (event: EventObjectNode) => {
-      const target = event.target;
-      onSelect({
-        type: "edge",
-        id: target.id(),
-        data: target.data() as Record<string, unknown>,
-      });
-    };
-    const onBgTap = () => onSelect(null);
-    cy.on("tap", "node", onTap);
-    cy.on("tap", "edge", onEdgeTap);
-    cy.on("tap", onBgTap);
-    return () => {
-      cy.off("zoom", handler);
-      cy.off("tap", "node", onTap);
-      cy.off("tap", "edge", onEdgeTap);
-      cy.off("tap", onBgTap);
-    };
-  }, [edgeMode, edgeSource, onAddEdge, onSelect]);
+      const width = Number(node.style?.width ?? 180);
+      const height = Number(node.style?.height ?? 80);
+      return {
+        ...node,
+        position: {
+          x: layout.x - width / 2,
+          y: layout.y - height / 2,
+        },
+      };
+    });
+
+    setNodes(nextNodes);
+    rfInstance?.fitView({ padding: 0.2 });
+  };
 
   return (
     <div className="graph-wrapper">
@@ -234,12 +196,10 @@ export default function GraphCanvas({
         <button
           className="button"
           onClick={() => {
-            const cy = cyRef.current;
-            if (!cy) {
+            if (!rfInstance) {
               return;
             }
-            cy.zoom(cy.zoom() * 1.1);
-            cy.center();
+            rfInstance.zoomIn({ duration: 120 });
           }}
         >
           Zoom In
@@ -247,28 +207,24 @@ export default function GraphCanvas({
         <button
           className="button"
           onClick={() => {
-            const cy = cyRef.current;
-            if (!cy) {
+            if (!rfInstance) {
               return;
             }
-            cy.zoom(cy.zoom() * 0.9);
-            cy.center();
+            rfInstance.zoomOut({ duration: 120 });
           }}
         >
           Zoom Out
         </button>
-        <button className="button" onClick={() => cyRef.current?.fit()}>
+        <button className="button" onClick={() => rfInstance?.fitView()}>
           Fit
         </button>
         <button
           className="button"
           onClick={() => {
-            const cy = cyRef.current;
-            if (!cy) {
+            if (!rfInstance) {
               return;
             }
-            cy.zoom(1);
-            cy.center();
+            rfInstance.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 120 });
           }}
         >
           Reset
@@ -279,47 +235,49 @@ export default function GraphCanvas({
         >
           Pan: {panEnabled ? "On" : "Off"}
         </button>
-        <button
-          className="button"
-          onClick={() => {
-            setEdgeMode((prev) => !prev);
-            setEdgeSource(null);
-            const cy = cyRef.current;
-            if (!cy) {
-              return;
-            }
-            const plugin = (cy as any).edgehandles?.();
-            if (plugin) {
-              if (!edgeMode) {
-                plugin.enableDrawMode();
-              } else {
-                plugin.disableDrawMode();
-              }
-            }
-          }}
-        >
-          Edge: {edgeMode ? "On" : "Off"}
-        </button>
         <button className="button" onClick={onAddNode}>
           + Claim
         </button>
-        <label className="zoom-step">
-          Wheel Step
-          <input
-            type="range"
-            min="0.02"
-            max="0.2"
-            step="0.01"
-            value={wheelStep}
-            onChange={(event) => setWheelStep(Number(event.target.value))}
-          />
-        </label>
-        <div className="zoom-indicator">Zoom: {zoom}x</div>
-        {edgeSource && (
-          <div className="zoom-indicator">Edge from {edgeSource}</div>
-        )}
+        <button className="button" onClick={layoutLeftToRight}>
+          Layout LR
+        </button>
+        <div className="zoom-indicator">Zoom: {Math.round(zoom * 100)}%</div>
       </div>
-      <div ref={containerRef} className="graph-canvas" />
+      <div className="graph-canvas">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onNodeClick={(_event, node) =>
+            onSelect({
+              type: "node",
+              id: node.id,
+              data: node.data as Record<string, unknown>,
+            })
+          }
+          onEdgeClick={(_event, edge) =>
+            onSelect({
+              type: "edge",
+              id: edge.id,
+              data: (edge.data ?? {}) as Record<string, unknown>,
+            })
+          }
+          onPaneClick={() => onSelect(null)}
+          onConnect={(params) => {
+            if (params.source && params.target) {
+              onAddEdge(params.source, params.target);
+            }
+          }}
+          panOnDrag={panEnabled}
+          fitView
+          onMove={(_event, viewport) => setZoom(viewport.zoom)}
+          onInit={(instance) => setRfInstance(instance)}
+        >
+          <Background color="#efefef" gap={24} />
+        </ReactFlow>
+      </div>
     </div>
   );
 }

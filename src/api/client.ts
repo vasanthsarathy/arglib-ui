@@ -4,6 +4,12 @@ import type {
   DatasetLoadResponse,
   GraphPayload,
   GraphResponse,
+  ReasoningRequest,
+  ReasoningResponse,
+  ReasonerRequest,
+  ReasonerResponse,
+  LLMClaimConfidenceRequest,
+  LLMClaimConfidenceResponse,
   SupportingDocumentPayload,
 } from "./types";
 
@@ -47,6 +53,40 @@ export function runDiagnostics(graphId: string): Promise<Record<string, unknown>
 
 export function runCredibility(graphId: string): Promise<Record<string, unknown>> {
   return request(`/graphs/${graphId}/credibility`, { method: "POST" });
+}
+
+export function runReasoning(
+  graphId: string,
+  body: ReasoningRequest,
+): Promise<ReasoningResponse> {
+  return request(`/graphs/${graphId}/reasoning`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export function runReasoner(
+  graphId: string,
+  body: ReasonerRequest,
+): Promise<ReasonerResponse> {
+  return request(`/graphs/${graphId}/reasoner`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export function scoreClaimConfidence(
+  graphId: string,
+  unitId: string,
+  body: LLMClaimConfidenceRequest,
+): Promise<LLMClaimConfidenceResponse> {
+  return request(`/graphs/${graphId}/units/${unitId}/llm-confidence`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 }
 
 export function listEvidenceCards(

@@ -26,3 +26,38 @@ export type DatasetLoadResponse = {
   count: number;
   items: Array<Record<string, unknown>>;
 };
+
+export type ReasoningRequest = {
+  semantics: "grounded" | "preferred" | "stable" | "complete" | "labelings";
+};
+
+export type ReasoningResponse = {
+  semantics: string;
+  arguments: Array<string>;
+  extensions?: Array<Array<string>> | null;
+  labeling?: Record<string, string> | null;
+};
+
+export type ReasonerRequest = {
+  tasks: Array<string>;
+  explain?: boolean;
+};
+
+export type ReasonerResponse = {
+  results: Record<string, unknown>;
+};
+
+export type LLMClaimConfidenceRequest = {
+  provider: "openai" | "anthropic" | "ollama";
+  model?: string | null;
+  temperature?: number | null;
+};
+
+export type LLMClaimConfidenceResponse = {
+  score: number;
+  weighted_score?: number | null;
+  rationale: string;
+  provider: string;
+  model: string;
+  score_source?: string | null;
+};
