@@ -44,6 +44,32 @@ type GraphData = {
   supporting_documents?: Record<string, Record<string, unknown>>;
 };
 
+type Diagnostics = {
+  node_count?: number;
+  relation_count?: number;
+  attack_edge_count?: number;
+  support_edge_count?: number;
+  cycle_count?: number;
+  cycles?: string[][];
+  component_count?: number;
+  components?: string[][];
+  scc_count?: number;
+  strongly_connected_components?: string[][];
+  isolated_units?: string[];
+  unsupported_claims?: string[];
+  degrees?: Record<string, { in: number; out: number }>;
+  degree_summary?: { avg_in: number; avg_out: number; max_in: number; max_out: number };
+  reachability?: Record<string, string[]>;
+  max_reachability?: number;
+};
+
+type EvidenceMeta = {
+  evidence_id?: string;
+  trust?: number;
+  score?: number;
+  rationale?: string | null;
+};
+
 type ResizeState = {
   kind: "left" | "right" | "bottom" | "left-vert" | "right-vert";
   startX: number;
@@ -78,9 +104,7 @@ export default function App() {
   const [graphId, setGraphId] = useState<string | null>(null);
   const [graph, setGraph] = useState<GraphData | null>(null);
   const graphRef = useRef<GraphData | null>(null);
-  const [diagnostics, setDiagnostics] = useState<Record<string, unknown> | null>(
-    null,
-  );
+  const [diagnostics, setDiagnostics] = useState<Diagnostics | null>(null);
   const [credibility, setCredibility] = useState<Record<string, unknown> | null>(
     null,
   );
@@ -529,8 +553,8 @@ export default function App() {
     if (!current) {
       return;
     }
-    const source = src ?? relationSrc;
-    const target = dst ?? relationDst;
+    const source = src ?? "";
+    const target = dst ?? "";
     if (!source || !target) {
       return;
     }
@@ -1207,12 +1231,11 @@ export default function App() {
                     typeof metadata.claim_credibility_method === "string"
                       ? metadata.claim_credibility_method
                       : "";
-                  const evidence =
-                    Array.isArray(metadata.claim_credibility_evidence)
-                      ? (metadata.claim_credibility_evidence as Array<
-                          Record<string, unknown>
-                        >)
-                      : [];
+                  const evidence = Array.isArray(
+                    metadata.claim_credibility_evidence,
+                  )
+                    ? (metadata.claim_credibility_evidence as EvidenceMeta[])
+                    : [];
                   if (claimScore === null && weightedScore === null) {
                     return (
                       <div className="list-item">
@@ -1421,9 +1444,10 @@ export default function App() {
                     <option value="">Support doc (optional)</option>
                     {Object.entries(docs).map(([docId, docValue]) => {
                       const doc = docValue as Record<string, unknown>;
+                      const docName = String(doc["name"] ?? docId);
                       return (
                         <option key={docId} value={docId}>
-                          {String(doc.name ?? docId)}
+                          {docName}
                         </option>
                       );
                     })}
@@ -1440,7 +1464,11 @@ export default function App() {
                 </label>
                 {cardDocId && (
                   <div className="muted">
-                    Using: {String(docs[cardDocId]?.name ?? cardDocId)}
+                    Using:{" "}
+                    {String(
+                      (docs[cardDocId] as Record<string, unknown> | undefined)
+                        ?.name ?? cardDocId,
+                    )}
                   </div>
                 )}
                 <label className="field range-field">
@@ -1625,47 +1653,49 @@ export default function App() {
               <div className="stat-card">
                 <div className="stat-label">Nodes</div>
                 <div className="stat-value">
-                  {diagnostics?.node_count ?? "-"}
+                  {String(diagnostics?.node_count ?? "-")}
                 </div>
               </div>
               <div className="stat-card">
                 <div className="stat-label">Relations</div>
                 <div className="stat-value">
-                  {diagnostics?.relation_count ?? "-"}
+                  {String(diagnostics?.relation_count ?? "-")}
                 </div>
               </div>
               <div className="stat-card">
                 <div className="stat-label">Support</div>
                 <div className="stat-value">
-                  {diagnostics?.support_edge_count ?? "-"}
+                  {String(diagnostics?.support_edge_count ?? "-")}
                 </div>
               </div>
               <div className="stat-card">
                 <div className="stat-label">Attack</div>
                 <div className="stat-value">
-                  {diagnostics?.attack_edge_count ?? "-"}
+                  {String(diagnostics?.attack_edge_count ?? "-")}
                 </div>
               </div>
               <div className="stat-card">
                 <div className="stat-label">Cycles</div>
                 <div className="stat-value">
-                  {diagnostics?.cycle_count ?? "-"}
+                  {String(diagnostics?.cycle_count ?? "-")}
                 </div>
               </div>
               <div className="stat-card">
                 <div className="stat-label">Components</div>
                 <div className="stat-value">
-                  {diagnostics?.component_count ?? "-"}
+                  {String(diagnostics?.component_count ?? "-")}
                 </div>
               </div>
               <div className="stat-card">
                 <div className="stat-label">SCC</div>
-                <div className="stat-value">{diagnostics?.scc_count ?? "-"}</div>
+                <div className="stat-value">
+                  {String(diagnostics?.scc_count ?? "-")}
+                </div>
               </div>
               <div className="stat-card">
                 <div className="stat-label">Max Reach</div>
                 <div className="stat-value">
-                  {diagnostics?.max_reachability ?? "-"}
+                  {String(diagnostics?.max_reachability ?? "-")}
                 </div>
               </div>
             </div>
@@ -1821,7 +1851,8 @@ export default function App() {
               )}
               {reasoning?.labeling && (
                 <div className="list-item">
-                  Labeling: {Object.entries(reasoning.labeling)
+                  Labeling:{" "}
+                  {Object.entries(reasoning.labeling ?? {})
                     .map(([id, label]) => `${id}:${label}`)
                     .join(", ")}
                 </div>
@@ -1839,7 +1870,7 @@ export default function App() {
                   className="button button-compact"
                   onClick={() =>
                     setReasoningHighlight(
-                      Object.entries(reasoning.labeling)
+                      Object.entries(reasoning.labeling ?? {})
                         .filter(([, label]) => label === "in")
                         .map(([id]) => id),
                     )
