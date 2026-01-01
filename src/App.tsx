@@ -344,10 +344,33 @@ export default function App() {
     if (rel?.kind) {
       setRelationKind(rel.kind);
     }
+    const storedValidation =
+      (rel?.metadata as Record<string, unknown> | undefined)?.llm_validation;
+    if (storedValidation && typeof storedValidation === "object") {
+      const payload = storedValidation as Record<string, unknown>;
+      if (
+        typeof payload.evaluation === "string" &&
+        typeof payload.score === "number"
+      ) {
+        setEdgeValidation({
+          evaluation: payload.evaluation,
+          score: payload.score,
+          rationale:
+            typeof payload.rationale === "string"
+              ? payload.rationale
+              : undefined,
+          provider: String(payload.provider ?? llmProvider),
+          model: String(payload.model ?? llmModel),
+        });
+      } else {
+        setEdgeValidation(null);
+      }
+    } else {
+      setEdgeValidation(null);
+    }
+    setEdgeValidationError("");
     setEdgeAssumptions(null);
     setEdgeAssumptionsError("");
-    setEdgeValidation(null);
-    setEdgeValidationError("");
   }, [selection, graph]);
 
   useEffect(() => {
