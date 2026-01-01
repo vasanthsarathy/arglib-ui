@@ -546,6 +546,10 @@ export default function App() {
         numericScore !== null && Number.isFinite(numericScore)
           ? numericScore
           : null;
+      const propagatedScore =
+        typeof metadata.claim_credibility_propagated === "number"
+          ? metadata.claim_credibility_propagated
+          : null;
       const rawLabel =
         metadata.claim_credibility_label ??
         metadata.llm_confidence_label ??
@@ -570,20 +574,41 @@ export default function App() {
           id: unit.id,
           label: text,
           scoreBadge,
+          propagatedScore,
           width,
           height,
         },
       };
     });
-    const edges = (graph.relations || []).map((rel, index) => ({
-      data: {
-        id: `e${index}`,
-        source: rel.src,
-        target: rel.dst,
-        label: rel.kind,
-        kind: rel.kind,
-      },
-    }));
+    const edges = (graph.relations || []).map((rel, index) => {
+      const metadata = rel.metadata ?? {};
+      const validation = metadata.llm_validation as
+        | Record<string, unknown>
+        | undefined;
+      const validationScore =
+        validation && typeof validation.score === "number"
+          ? validation.score
+          : null;
+      const validationEval =
+        validation && typeof validation.evaluation === "string"
+          ? validation.evaluation
+          : null;
+      const label =
+        validationScore !== null
+          ? `${rel.kind} ${validationScore.toFixed(2)}`
+          : rel.kind;
+      return {
+        data: {
+          id: `e${index}`,
+          source: rel.src,
+          target: rel.dst,
+          label,
+          kind: rel.kind,
+          validationScore,
+          validationEval,
+        },
+      };
+    });
     return [...nodes, ...edges];
   }, [graph]);
 
@@ -1478,6 +1503,22 @@ export default function App() {
                     typeof metadata.claim_credibility_propagated === "number"
                       ? metadata.claim_credibility_propagated
                       : null;
+                  const allPropagated = Object.entries(graph?.units ?? {})
+                    .map(([unitId, unit]) => {
+                      const unitMeta =
+                        (unit as { metadata?: Record<string, unknown> })
+                          .metadata ?? {};
+                      const value =
+                        typeof unitMeta.claim_credibility_propagated ===
+                        "number"
+                          ? unitMeta.claim_credibility_propagated
+                          : null;
+                      return { unitId, value };
+                    })
+                    .filter((entry) => entry.value !== null) as Array<{
+                    unitId: string;
+                    value: number;
+                  }>;
                   const evidence = Array.isArray(
                     metadata.claim_credibility_evidence,
                   )
@@ -1502,6 +1543,21 @@ export default function App() {
                           ? propagatedScore.toFixed(2)
                           : "n/a"}
                       </div>
+                      {allPropagated.length ? (
+                        <div className="list">
+                          <div className="list-item">
+                            <strong>All propagated scores</strong>
+                          </div>
+                          {allPropagated.map((entry) => (
+                            <div
+                              className="list-item"
+                              key={`prop-${entry.unitId}`}
+                            >
+                              {entry.unitId}: {entry.value.toFixed(2)}
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
                       <div className="list-item">
                         Weighted score:{" "}
                         {weightedScore !== null

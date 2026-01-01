@@ -545,6 +545,19 @@ body {
   pointer-events: none;
 }
 
+.rf-node-score-value {
+  position: absolute;
+  bottom: -9px;
+  right: -6px;
+  font-size: 10px;
+  color: #111827;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  padding: 1px 4px;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
 .rf-label {
   pointer-events: none;
   line-height: 1.2;

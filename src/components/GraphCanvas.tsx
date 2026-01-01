@@ -36,6 +36,7 @@ const ClaimNode = ({
     scoreBadge?:
       | { label: string; color: string; bgColor: string; borderColor: string }
       | null;
+    propagatedScore?: number | null;
   };
 }) => {
   return (
@@ -51,6 +52,11 @@ const ClaimNode = ({
           }}
         >
           {data.scoreBadge.label}
+        </div>
+      )}
+      {typeof data.propagatedScore === "number" && (
+        <div className="rf-node-score-value">
+          {data.propagatedScore.toFixed(2)}
         </div>
       )}
       <Handle
@@ -100,7 +106,13 @@ export default function GraphCanvas({
       const isEdge = "source" in data && "target" in data;
       if (isEdge) {
         const kind = String(data.kind ?? data.label ?? "support");
+        const validationScore =
+          typeof data.validationScore === "number" ? data.validationScore : null;
         const color = kind === "attack" ? "#b00020" : "#188038";
+        const strokeWidth =
+          validationScore !== null
+            ? Math.min(3, 1 + Math.abs(validationScore) * 2)
+            : 1;
         nextEdges.push({
           id,
           source: String(data.source),
@@ -108,12 +120,14 @@ export default function GraphCanvas({
           label: String(data.label ?? kind),
           data: { kind },
           markerEnd: { type: MarkerType.ArrowClosed, color },
-          style: { stroke: color, strokeWidth: 1 },
+          style: { stroke: color, strokeWidth },
           labelStyle: { fill: color, fontSize: 10, fontFamily: "IBM Plex Mono" },
         });
         continue;
       }
       const label = String(data.label ?? "");
+      const propagatedScore =
+        typeof data.propagatedScore === "number" ? data.propagatedScore : null;
       const scoreBadge =
         (data.scoreBadge as
           | { label: string; color: string; bgColor: string; borderColor: string }
@@ -131,7 +145,7 @@ export default function GraphCanvas({
       nextNodes.push({
         id,
         type: "claim",
-        data: { label, id, scoreBadge },
+        data: { label, id, scoreBadge, propagatedScore },
         position,
         style: { width, height },
         className: highlightSet.has(id) ? "rf-node-highlight" : "",
