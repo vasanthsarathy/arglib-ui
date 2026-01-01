@@ -15,11 +15,15 @@ import {
   runReasoner,
   runReasoning,
   scoreClaimConfidence,
+  classifyClaimType,
+  validateEdge,
   generateEdgeAssumptions,
   updateGraph,
 } from "./api/client";
 import type {
   LLMClaimConfidenceResponse,
+  LLMClaimTypeResponse,
+  LLMEdgeValidationResponse,
   EdgeAssumptionsResponse,
   ReasonerResponse,
   ReasoningResponse,
@@ -118,6 +122,9 @@ export default function App() {
     null,
   );
   const [llmError, setLlmError] = useState("");
+  const [claimTypeResult, setClaimTypeResult] =
+    useState<LLMClaimTypeResponse | null>(null);
+  const [claimTypeError, setClaimTypeError] = useState("");
   const [reasoning, setReasoning] = useState<ReasoningResponse | null>(null);
   const [reasoningError, setReasoningError] = useState("");
   const [reasonerResults, setReasonerResults] = useState<ReasonerResponse | null>(
@@ -140,6 +147,9 @@ export default function App() {
     useState<EdgeAssumptionsResponse | null>(null);
   const [edgeAssumptionsError, setEdgeAssumptionsError] = useState("");
   const [edgeAssumptionCount, setEdgeAssumptionCount] = useState(3);
+  const [edgeValidation, setEdgeValidation] =
+    useState<LLMEdgeValidationResponse | null>(null);
+  const [edgeValidationError, setEdgeValidationError] = useState("");
   const [docName, setDocName] = useState("");
   const [docUrl, setDocUrl] = useState("");
   const [docType, setDocType] = useState("pdf");
@@ -298,6 +308,24 @@ export default function App() {
     } else {
       setLlmResult(null);
     }
+    const claimType = unit.type ?? "";
+    if (claimType) {
+      setClaimTypeResult({
+        claim_type: claimType,
+        confidence:
+          typeof metadata.claim_type_confidence === "number"
+            ? metadata.claim_type_confidence
+            : null,
+        rationale:
+          typeof metadata.claim_type_rationale === "string"
+            ? metadata.claim_type_rationale
+            : null,
+        provider: String(metadata.claim_type_provider ?? llmProvider),
+        model: String(metadata.claim_type_model ?? llmModel),
+      });
+    } else {
+      setClaimTypeResult(null);
+    }
     const rawManual =
       typeof metadata.claim_credibility === "number"
         ? metadata.claim_credibility
@@ -318,6 +346,8 @@ export default function App() {
     }
     setEdgeAssumptions(null);
     setEdgeAssumptionsError("");
+    setEdgeValidation(null);
+    setEdgeValidationError("");
   }, [selection, graph]);
 
   useEffect(() => {
@@ -663,6 +693,7 @@ export default function App() {
       ]);
       const data = await getGraph(graphId);
       setGraph(data.payload as GraphData);
+      await handleRunCredibility();
     } catch (error) {
       setLlmError(error instanceof Error ? error.message : "LLM scoring failed.");
       setConsoleEntries((prev) => [
@@ -1133,19 +1164,19 @@ export default function App() {
                 if (!current || !selection) {
                   return;
                 }
-                const nextGraph = {
-                  ...current,
-                  units: {
-                    ...current.units,
-                    [selection.id]: {
-                      id: selection.id,
-                      text: claimText,
-                      type: claimType,
-                    },
-                  },
-                };
-                await updateGraphState(nextGraph);
-              }}
+                    const nextGraph = {
+                      ...current,
+                      units: {
+                        ...current.units,
+                        [selection.id]: {
+                          id: selection.id,
+                          text: claimText,
+                          type: claimType,
+                        },
+                      },
+                    };
+                    await updateGraphState(nextGraph);
+                  }}
             >
               Update Claim
             </button>
@@ -1255,6 +1286,76 @@ export default function App() {
                 )}
               </div>
               <div className="panel-section">
+                <h3>Claim Type (LLM)</h3>
+                <div className="grid">
+                  <select
+                    className="input"
+                    value={llmProvider}
+                    onChange={(event) =>
+                      setLlmProvider(
+                        event.target.value as "openai" | "anthropic" | "ollama",
+                      )
+                    }
+                  >
+                    <option value="openai">OpenAI</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="ollama">Ollama</option>
+                  </select>
+                  <input
+                    className="input"
+                    placeholder="Model"
+                    value={llmModel}
+                    onChange={(event) => setLlmModel(event.target.value)}
+                  />
+                  <button
+                    className="button"
+                    onClick={async () => {
+                      if (!graphId || !selection) {
+                        return;
+                      }
+                      setClaimTypeError("");
+                      try {
+                        const response = await classifyClaimType(
+                          graphId,
+                          selection.id,
+                          {
+                            provider: llmProvider,
+                            model: llmModel,
+                          },
+                        );
+                        setClaimTypeResult(response);
+                        const data = await getGraph(graphId);
+                        setGraph(data.payload as GraphData);
+                      } catch (error) {
+                        setClaimTypeError(
+                          error instanceof Error
+                            ? error.message
+                            : "Claim type failed.",
+                        );
+                      }
+                    }}
+                  >
+                    Classify Claim
+                  </button>
+                </div>
+                {claimTypeError && (
+                  <div className="list-item">Error: {claimTypeError}</div>
+                )}
+                {claimTypeResult && (
+                  <div className="list-item">
+                    <strong>{claimTypeResult.claim_type}</strong>
+                    {typeof claimTypeResult.confidence === "number" && (
+                      <div className="muted">
+                        Confidence: {claimTypeResult.confidence.toFixed(2)}
+                      </div>
+                    )}
+                    {claimTypeResult.rationale && (
+                      <div className="muted">{claimTypeResult.rationale}</div>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="panel-section">
                 <h3>Manual Claim Credibility</h3>
                 <div className="grid">
                   <input
@@ -1297,6 +1398,7 @@ export default function App() {
                           [selection.id]: nextUnit,
                         },
                       });
+                      await handleRunCredibility();
                     }}
                   >
                     Set Manual Score
@@ -1323,6 +1425,7 @@ export default function App() {
                         },
                       });
                       setManualClaimScore("");
+                      await handleRunCredibility();
                     }}
                   >
                     Clear Manual
@@ -1479,6 +1582,74 @@ export default function App() {
               <button className="button" onClick={handleDeleteEdge}>
                 Delete Edge
               </button>
+            </div>
+          )}
+          {selection?.type === "edge" && (
+            <div className="panel-section">
+              <h3>Edge Validation (LLM)</h3>
+              <div className="grid">
+                <select
+                  className="input"
+                  value={llmProvider}
+                  onChange={(event) =>
+                    setLlmProvider(
+                      event.target.value as "openai" | "anthropic" | "ollama",
+                    )
+                  }
+                >
+                  <option value="openai">OpenAI</option>
+                  <option value="anthropic">Anthropic</option>
+                  <option value="ollama">Ollama</option>
+                </select>
+                <input
+                  className="input"
+                  placeholder="Model"
+                  value={llmModel}
+                  onChange={(event) => setLlmModel(event.target.value)}
+                />
+                <button
+                  className="button"
+                  onClick={async () => {
+                    if (!graphId || !selection) {
+                      return;
+                    }
+                    setEdgeValidationError("");
+                    try {
+                      const response = await validateEdge(
+                        graphId,
+                        selection.id,
+                        {
+                          provider: llmProvider,
+                          model: llmModel,
+                        },
+                      );
+                      setEdgeValidation(response);
+                      const data = await getGraph(graphId);
+                      setGraph(data.payload as GraphData);
+                    } catch (error) {
+                      setEdgeValidationError(
+                        error instanceof Error
+                          ? error.message
+                          : "Edge validation failed.",
+                      );
+                    }
+                  }}
+                >
+                  Validate Edge
+                </button>
+              </div>
+              {edgeValidationError && (
+                <div className="list-item">Error: {edgeValidationError}</div>
+              )}
+              {edgeValidation && (
+                <div className="list-item">
+                  <strong>{edgeValidation.evaluation}</strong>{" "}
+                  ({edgeValidation.score.toFixed(2)})
+                  {edgeValidation.rationale && (
+                    <div className="muted">{edgeValidation.rationale}</div>
+                  )}
+                </div>
+              )}
             </div>
           )}
           {selection?.type === "edge" && (

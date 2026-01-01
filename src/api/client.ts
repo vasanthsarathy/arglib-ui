@@ -10,6 +10,10 @@ import type {
   ReasonerResponse,
   LLMClaimConfidenceRequest,
   LLMClaimConfidenceResponse,
+  LLMClaimTypeRequest,
+  LLMClaimTypeResponse,
+  LLMEdgeValidationRequest,
+  LLMEdgeValidationResponse,
   EdgeAssumptionsRequest,
   EdgeAssumptionsResponse,
   SupportingDocumentPayload,
@@ -85,6 +89,30 @@ export function scoreClaimConfidence(
   body: LLMClaimConfidenceRequest,
 ): Promise<LLMClaimConfidenceResponse> {
   return request(`/graphs/${graphId}/units/${unitId}/llm-confidence`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export function classifyClaimType(
+  graphId: string,
+  unitId: string,
+  body: LLMClaimTypeRequest,
+): Promise<LLMClaimTypeResponse> {
+  return request(`/graphs/${graphId}/units/${unitId}/claim-type`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export function validateEdge(
+  graphId: string,
+  edgeId: string,
+  body: LLMEdgeValidationRequest,
+): Promise<LLMEdgeValidationResponse> {
+  return request(`/graphs/${graphId}/edges/${edgeId}/validate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),

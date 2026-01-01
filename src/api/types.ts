@@ -62,6 +62,34 @@ export type LLMClaimConfidenceResponse = {
   score_source?: string | null;
 };
 
+export type LLMClaimTypeRequest = {
+  provider: "openai" | "anthropic" | "ollama";
+  model?: string | null;
+  temperature?: number | null;
+};
+
+export type LLMClaimTypeResponse = {
+  claim_type: string;
+  confidence?: number | null;
+  rationale?: string | null;
+  provider: string;
+  model: string;
+};
+
+export type LLMEdgeValidationRequest = {
+  provider: "openai" | "anthropic" | "ollama";
+  model?: string | null;
+  temperature?: number | null;
+};
+
+export type LLMEdgeValidationResponse = {
+  evaluation: string;
+  score: number;
+  rationale?: string | null;
+  provider: string;
+  model: string;
+};
+
 export type EdgeAssumptionsRequest = {
   provider: "openai" | "anthropic" | "ollama";
   model?: string | null;
