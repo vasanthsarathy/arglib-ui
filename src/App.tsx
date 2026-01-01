@@ -133,6 +133,7 @@ export default function App() {
   const [claimText, setClaimText] = useState("");
   const [claimType, setClaimType] = useState("fact");
   const [relationKind, setRelationKind] = useState("support");
+  const [manualClaimScore, setManualClaimScore] = useState("");
   const [docName, setDocName] = useState("");
   const [docUrl, setDocUrl] = useState("");
   const [docType, setDocType] = useState("pdf");
@@ -291,6 +292,13 @@ export default function App() {
     } else {
       setLlmResult(null);
     }
+    const rawManual =
+      typeof metadata.claim_credibility === "number"
+        ? metadata.claim_credibility
+        : "";
+    setManualClaimScore(
+      rawManual === "" ? "" : Number(rawManual).toFixed(2),
+    );
   }, [selection, graph]);
 
   useEffect(() => {
@@ -457,6 +465,7 @@ export default function App() {
       const text = unit.text || "";
       const metadata = unit.metadata ?? {};
       const rawScore =
+        metadata.claim_credibility_propagated ??
         metadata.claim_credibility ??
         metadata.claim_credibility_score ??
         metadata.llm_confidence ??
@@ -595,6 +604,28 @@ export default function App() {
     ]);
     const result = await runCredibility(graphId);
     setCredibility(result);
+    const scores = (result.final_scores as Record<string, number> | undefined) ?? {};
+    const current = graphRef.current;
+    if (current && Object.keys(scores).length) {
+      const nextUnits = { ...current.units };
+      for (const [unitId, score] of Object.entries(scores)) {
+        const unit = nextUnits[unitId];
+        if (!unit) {
+          continue;
+        }
+        nextUnits[unitId] = {
+          ...unit,
+          metadata: {
+            ...(unit.metadata ?? {}),
+            claim_credibility_propagated: score,
+          },
+        };
+      }
+      await updateGraphState({
+        ...current,
+        units: nextUnits,
+      });
+    }
   };
 
   const handleScoreClaim = async () => {
@@ -1216,6 +1247,84 @@ export default function App() {
                 )}
               </div>
               <div className="panel-section">
+                <h3>Manual Claim Credibility</h3>
+                <div className="grid">
+                  <input
+                    className="input"
+                    type="number"
+                    min="-1"
+                    max="1"
+                    step="0.01"
+                    placeholder="-1.00 to 1.00"
+                    value={manualClaimScore}
+                    onChange={(event) => setManualClaimScore(event.target.value)}
+                  />
+                  <button
+                    className="button"
+                    onClick={async () => {
+                      if (!selection || selection.type !== "node") {
+                        return;
+                      }
+                      const score = Number(manualClaimScore);
+                      if (!Number.isFinite(score) || score < -1 || score > 1) {
+                        return;
+                      }
+                      const current = graphRef.current;
+                      if (!current) {
+                        return;
+                      }
+                      const unit = current.units[selection.id];
+                      const nextUnit = {
+                        ...unit,
+                        metadata: {
+                          ...(unit.metadata ?? {}),
+                          claim_credibility: score,
+                          claim_credibility_method: "manual",
+                        },
+                      };
+                      await updateGraphState({
+                        ...current,
+                        units: {
+                          ...current.units,
+                          [selection.id]: nextUnit,
+                        },
+                      });
+                    }}
+                  >
+                    Set Manual Score
+                  </button>
+                  <button
+                    className="button"
+                    onClick={async () => {
+                      if (!selection || selection.type !== "node") {
+                        return;
+                      }
+                      const current = graphRef.current;
+                      if (!current) {
+                        return;
+                      }
+                      const unit = current.units[selection.id];
+                      const nextMeta = { ...(unit.metadata ?? {}) };
+                      delete nextMeta.claim_credibility;
+                      delete nextMeta.claim_credibility_method;
+                      await updateGraphState({
+                        ...current,
+                        units: {
+                          ...current.units,
+                          [selection.id]: { ...unit, metadata: nextMeta },
+                        },
+                      });
+                      setManualClaimScore("");
+                    }}
+                  >
+                    Clear Manual
+                  </button>
+                </div>
+                <div className="muted">
+                  Manual scores are overwritten when LLM scoring runs.
+                </div>
+              </div>
+              <div className="panel-section">
                 <h3>Credibility Breakdown</h3>
                 {(() => {
                   const metadata = graph?.units?.[selection.id]?.metadata ?? {};
@@ -1231,6 +1340,10 @@ export default function App() {
                     typeof metadata.claim_credibility_method === "string"
                       ? metadata.claim_credibility_method
                       : "";
+                  const propagatedScore =
+                    typeof metadata.claim_credibility_propagated === "number"
+                      ? metadata.claim_credibility_propagated
+                      : null;
                   const evidence = Array.isArray(
                     metadata.claim_credibility_evidence,
                   )
@@ -1248,6 +1361,12 @@ export default function App() {
                       <div className="list-item">
                         Claim score:{" "}
                         {claimScore !== null ? claimScore.toFixed(2) : "n/a"}
+                      </div>
+                      <div className="list-item">
+                        Propagated score:{" "}
+                        {propagatedScore !== null
+                          ? propagatedScore.toFixed(2)
+                          : "n/a"}
                       </div>
                       <div className="list-item">
                         Weighted score:{" "}
