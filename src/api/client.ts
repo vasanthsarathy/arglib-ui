@@ -10,6 +10,8 @@ import type {
   ReasonerResponse,
   LLMClaimConfidenceRequest,
   LLMClaimConfidenceResponse,
+  EdgeAssumptionsRequest,
+  EdgeAssumptionsResponse,
   SupportingDocumentPayload,
 } from "./types";
 
@@ -83,6 +85,18 @@ export function scoreClaimConfidence(
   body: LLMClaimConfidenceRequest,
 ): Promise<LLMClaimConfidenceResponse> {
   return request(`/graphs/${graphId}/units/${unitId}/llm-confidence`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export function generateEdgeAssumptions(
+  graphId: string,
+  edgeId: string,
+  body: EdgeAssumptionsRequest,
+): Promise<EdgeAssumptionsResponse> {
+  return request(`/graphs/${graphId}/edges/${edgeId}/assumptions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),

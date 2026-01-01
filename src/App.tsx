@@ -15,10 +15,12 @@ import {
   runReasoner,
   runReasoning,
   scoreClaimConfidence,
+  generateEdgeAssumptions,
   updateGraph,
 } from "./api/client";
 import type {
   LLMClaimConfidenceResponse,
+  EdgeAssumptionsResponse,
   ReasonerResponse,
   ReasoningResponse,
 } from "./api/types";
@@ -134,6 +136,10 @@ export default function App() {
   const [claimType, setClaimType] = useState("fact");
   const [relationKind, setRelationKind] = useState("support");
   const [manualClaimScore, setManualClaimScore] = useState("");
+  const [edgeAssumptions, setEdgeAssumptions] =
+    useState<EdgeAssumptionsResponse | null>(null);
+  const [edgeAssumptionsError, setEdgeAssumptionsError] = useState("");
+  const [edgeAssumptionCount, setEdgeAssumptionCount] = useState(3);
   const [docName, setDocName] = useState("");
   const [docUrl, setDocUrl] = useState("");
   const [docType, setDocType] = useState("pdf");
@@ -310,6 +316,8 @@ export default function App() {
     if (rel?.kind) {
       setRelationKind(rel.kind);
     }
+    setEdgeAssumptions(null);
+    setEdgeAssumptionsError("");
   }, [selection, graph]);
 
   useEffect(() => {
@@ -1471,6 +1479,97 @@ export default function App() {
               <button className="button" onClick={handleDeleteEdge}>
                 Delete Edge
               </button>
+            </div>
+          )}
+          {selection?.type === "edge" && (
+            <div className="panel-section">
+              <h3>Implicit Assumptions (LLM)</h3>
+              <div className="grid">
+                <select
+                  className="input"
+                  value={llmProvider}
+                  onChange={(event) =>
+                    setLlmProvider(
+                      event.target.value as "openai" | "anthropic" | "ollama",
+                    )
+                  }
+                >
+                  <option value="openai">OpenAI</option>
+                  <option value="anthropic">Anthropic</option>
+                  <option value="ollama">Ollama</option>
+                </select>
+                <input
+                  className="input"
+                  placeholder="Model"
+                  value={llmModel}
+                  onChange={(event) => setLlmModel(event.target.value)}
+                />
+                <input
+                  className="input"
+                  type="number"
+                  min="1"
+                  max="8"
+                  value={edgeAssumptionCount}
+                  onChange={(event) =>
+                    setEdgeAssumptionCount(Number(event.target.value))
+                  }
+                />
+                <button
+                  className="button"
+                  onClick={async () => {
+                    if (!graphId || !selection) {
+                      return;
+                    }
+                    setEdgeAssumptionsError("");
+                    try {
+                      const response = await generateEdgeAssumptions(
+                        graphId,
+                        selection.id,
+                        {
+                          provider: llmProvider,
+                          model: llmModel,
+                          k: edgeAssumptionCount,
+                        },
+                      );
+                      setEdgeAssumptions(response);
+                    } catch (error) {
+                      setEdgeAssumptionsError(
+                        error instanceof Error
+                          ? error.message
+                          : "Assumption generation failed.",
+                      );
+                    }
+                  }}
+                >
+                  Generate Assumptions
+                </button>
+              </div>
+              {edgeAssumptionsError && (
+                <div className="list-item">Error: {edgeAssumptionsError}</div>
+              )}
+              {edgeAssumptions && (
+                <div className="list">
+                  {edgeAssumptions.assumptions.length ? (
+                    edgeAssumptions.assumptions.map((item, index) => (
+                      <div className="list-item" key={`assump-${index}`}>
+                        <strong>{item.assumption}</strong>
+                        {item.rationale && (
+                          <div className="muted">
+                            {String(item.rationale)}
+                          </div>
+                        )}
+                        {typeof item.importance === "number" && (
+                          <div className="muted">
+                            Importance: {item.importance.toFixed(2)}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="list-item">No assumptions returned.</div>
+                  )}
+                </div>
+              )}
             </div>
           )}
             </div>

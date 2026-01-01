@@ -61,3 +61,21 @@ export type LLMClaimConfidenceResponse = {
   model: string;
   score_source?: string | null;
 };
+
+export type EdgeAssumptionsRequest = {
+  provider: "openai" | "anthropic" | "ollama";
+  model?: string | null;
+  temperature?: number | null;
+  k?: number;
+};
+
+export type EdgeAssumptionItem = {
+  assumption: string;
+  rationale?: string | null;
+  importance?: number | null;
+};
+
+export type EdgeAssumptionsResponse = {
+  edge_id: string;
+  assumptions: Array<EdgeAssumptionItem>;
+};
