@@ -125,6 +125,12 @@ export default function App() {
   const [claimTypeResult, setClaimTypeResult] =
     useState<LLMClaimTypeResponse | null>(null);
   const [claimTypeError, setClaimTypeError] = useState("");
+  const [isScoringClaim, setIsScoringClaim] = useState(false);
+  const [isClassifyingClaim, setIsClassifyingClaim] = useState(false);
+  const [isValidatingEdge, setIsValidatingEdge] = useState(false);
+  const [isGeneratingAssumptions, setIsGeneratingAssumptions] = useState(false);
+  const [isRunningCredibility, setIsRunningCredibility] = useState(false);
+  const [isRunningDiagnostics, setIsRunningDiagnostics] = useState(false);
   const [reasoning, setReasoning] = useState<ReasoningResponse | null>(null);
   const [reasoningError, setReasoningError] = useState("");
   const [reasonerResults, setReasonerResults] = useState<ReasonerResponse | null>(
@@ -665,19 +671,25 @@ export default function App() {
     if (!graphId) {
       return;
     }
+    setIsRunningDiagnostics(true);
     setConsoleEntries((prev) => [
       { ts: new Date().toLocaleTimeString(), message: "Diagnostics requested" },
       ...prev,
     ]);
-    const result = await runDiagnostics(graphId);
-    setDiagnostics(result);
-    setDiagnosticFocus([]);
+    try {
+      const result = await runDiagnostics(graphId);
+      setDiagnostics(result);
+      setDiagnosticFocus([]);
+    } finally {
+      setIsRunningDiagnostics(false);
+    }
   };
 
   const handleRunCredibility = async () => {
     if (!graphId) {
       return;
     }
+    setIsRunningCredibility(true);
     setConsoleEntries((prev) => [
       {
         ts: new Date().toLocaleTimeString(),
@@ -685,29 +697,34 @@ export default function App() {
       },
       ...prev,
     ]);
-    const result = await runCredibility(graphId);
-    setCredibility(result);
-    const scores = (result.final_scores as Record<string, number> | undefined) ?? {};
-    const current = graphRef.current;
-    if (current && Object.keys(scores).length) {
-      const nextUnits = { ...current.units };
-      for (const [unitId, score] of Object.entries(scores)) {
-        const unit = nextUnits[unitId];
-        if (!unit) {
-          continue;
+    try {
+      const result = await runCredibility(graphId);
+      setCredibility(result);
+      const scores =
+        (result.final_scores as Record<string, number> | undefined) ?? {};
+      const current = graphRef.current;
+      if (current && Object.keys(scores).length) {
+        const nextUnits = { ...current.units };
+        for (const [unitId, score] of Object.entries(scores)) {
+          const unit = nextUnits[unitId];
+          if (!unit) {
+            continue;
+          }
+          nextUnits[unitId] = {
+            ...unit,
+            metadata: {
+              ...(unit.metadata ?? {}),
+              claim_credibility_propagated: score,
+            },
+          };
         }
-        nextUnits[unitId] = {
-          ...unit,
-          metadata: {
-            ...(unit.metadata ?? {}),
-            claim_credibility_propagated: score,
-          },
-        };
+        await updateGraphState({
+          ...current,
+          units: nextUnits,
+        });
       }
-      await updateGraphState({
-        ...current,
-        units: nextUnits,
-      });
+    } finally {
+      setIsRunningCredibility(false);
     }
   };
 
@@ -716,6 +733,7 @@ export default function App() {
       return;
     }
     setLlmError("");
+    setIsScoringClaim(true);
     setConsoleEntries((prev) => [
       {
         ts: new Date().toLocaleTimeString(),
@@ -748,6 +766,8 @@ export default function App() {
         },
         ...prev,
       ]);
+    } finally {
+      setIsScoringClaim(false);
     }
   };
 
@@ -1304,8 +1324,12 @@ export default function App() {
               <div className="panel-section">
                 <h3>LLM Claim Confidence</h3>
                 <div className="grid">
-                  <button className="button" onClick={handleScoreClaim}>
-                    Score Claim
+                  <button
+                    className="button"
+                    onClick={handleScoreClaim}
+                    disabled={isScoringClaim}
+                  >
+                    {isScoringClaim ? "Scoring..." : "Score Claim"}
                   </button>
                 </div>
                 {llmError && <div className="list-item">Error: {llmError}</div>}
@@ -1342,6 +1366,7 @@ export default function App() {
                         return;
                       }
                       setClaimTypeError("");
+                      setIsClassifyingClaim(true);
                       try {
                         const response = await classifyClaimType(
                           graphId,
@@ -1360,10 +1385,13 @@ export default function App() {
                             ? error.message
                             : "Claim type failed.",
                         );
+                      } finally {
+                        setIsClassifyingClaim(false);
                       }
                     }}
+                    disabled={isClassifyingClaim}
                   >
-                    Classify Claim
+                    {isClassifyingClaim ? "Classifying..." : "Classify Claim"}
                   </button>
                 </div>
                 {claimTypeError && (
@@ -1665,6 +1693,7 @@ export default function App() {
                       return;
                     }
                     setEdgeValidationError("");
+                    setIsValidatingEdge(true);
                     try {
                       const response = await validateEdge(
                         graphId,
@@ -1684,10 +1713,13 @@ export default function App() {
                           ? error.message
                           : "Edge validation failed.",
                       );
+                    } finally {
+                      setIsValidatingEdge(false);
                     }
                   }}
+                  disabled={isValidatingEdge}
                 >
-                  Validate Edge
+                  {isValidatingEdge ? "Validating..." : "Validate Edge"}
                 </button>
               </div>
               {edgeValidationError && (
@@ -1725,6 +1757,7 @@ export default function App() {
                       return;
                     }
                     setEdgeAssumptionsError("");
+                    setIsGeneratingAssumptions(true);
                     try {
                       const response = await generateEdgeAssumptions(
                         graphId,
@@ -1742,10 +1775,15 @@ export default function App() {
                           ? error.message
                           : "Assumption generation failed.",
                       );
+                    } finally {
+                      setIsGeneratingAssumptions(false);
                     }
                   }}
+                  disabled={isGeneratingAssumptions}
                 >
-                  Generate Assumptions
+                  {isGeneratingAssumptions
+                    ? "Generating..."
+                    : "Generate Assumptions"}
                 </button>
               </div>
               {edgeAssumptionsError && (
@@ -2000,12 +2038,23 @@ export default function App() {
             </div>
             <div className="panel-body">
             <div className="summary-actions">
-              <button className="button" onClick={handleRunDiagnostics}>
+              <button
+                className="button"
+                onClick={handleRunDiagnostics}
+                disabled={isRunningDiagnostics}
+              >
                 Run Diagnostics
               </button>
-              <button className="button" onClick={handleRunCredibility}>
+              <button
+                className="button"
+                onClick={handleRunCredibility}
+                disabled={isRunningCredibility}
+              >
                 Run Credibility
               </button>
+              {(isRunningDiagnostics || isRunningCredibility) && (
+                <span className="status-pill">Thinking...</span>
+              )}
             </div>
             <div className="summary-section">
               <h3>Diagnostics Highlights</h3>
