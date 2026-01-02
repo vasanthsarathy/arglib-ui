@@ -588,11 +588,9 @@ export default function App() {
       const validationScore =
         validation && typeof validation.score === "number"
           ? validation.score
-          : null;
-      const validationEval =
-        validation && typeof validation.evaluation === "string"
-          ? validation.evaluation
-          : null;
+          : typeof rel.weight === "number"
+            ? rel.weight
+            : null;
       const label =
         validationScore !== null
           ? `${rel.kind} ${validationScore.toFixed(2)}`
@@ -605,7 +603,6 @@ export default function App() {
           label,
           kind: rel.kind,
           validationScore,
-          validationEval,
         },
       };
     });
@@ -1661,6 +1658,17 @@ export default function App() {
               <button className="button" onClick={handleDeleteEdge}>
                 Delete Edge
               </button>
+              <div className="list-item">
+                Weight:{" "}
+                {(() => {
+                  const current = graphRef.current;
+                  const idx = Number(selection.id.replace("e", ""));
+                  const rel = current?.relations?.[idx];
+                  return typeof rel?.weight === "number"
+                    ? rel.weight.toFixed(2)
+                    : "n/a";
+                })()}
+              </div>
             </div>
           )}
           {selection?.type === "edge" && (
@@ -1705,6 +1713,7 @@ export default function App() {
                       setEdgeValidation(response);
                       const data = await getGraph(graphId);
                       setGraph(data.payload as GraphData);
+                      await handleRunCredibility();
                     } catch (error) {
                       setEdgeValidationError(
                         error instanceof Error
