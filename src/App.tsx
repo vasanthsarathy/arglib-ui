@@ -200,6 +200,12 @@ export default function App() {
   const [consoleEntries, setConsoleEntries] = useState<
     Array<{ ts: string; message: string }>
   >([]);
+  const logConsole = (message: string) => {
+    setConsoleEntries((prev) => [
+      { ts: new Date().toLocaleTimeString(), message },
+      ...prev,
+    ]);
+  };
 
   useEffect(() => {
     fetchHealth()
@@ -672,14 +678,14 @@ export default function App() {
       return;
     }
     setIsRunningDiagnostics(true);
-    setConsoleEntries((prev) => [
-      { ts: new Date().toLocaleTimeString(), message: "Diagnostics requested" },
-      ...prev,
-    ]);
+    logConsole("Diagnostics: request sent");
     try {
       const result = await runDiagnostics(graphId);
       setDiagnostics(result);
       setDiagnosticFocus([]);
+      logConsole(
+        `Diagnostics: ${result.node_count ?? "-"} nodes, ${result.relation_count ?? "-"} relations`,
+      );
     } finally {
       setIsRunningDiagnostics(false);
     }
@@ -690,16 +696,13 @@ export default function App() {
       return;
     }
     setIsRunningCredibility(true);
-    setConsoleEntries((prev) => [
-      {
-        ts: new Date().toLocaleTimeString(),
-        message: "Credibility propagation requested",
-      },
-      ...prev,
-    ]);
+    logConsole("Credibility: propagation started");
     try {
       const result = await runCredibility(graphId);
       setCredibility(result);
+      logConsole(
+        `Credibility: iterations ${Array.isArray(result.iterations) ? result.iterations.length : "-"}`,
+      );
       const scores =
         (result.final_scores as Record<string, number> | undefined) ?? {};
       const current = graphRef.current;
@@ -722,6 +725,7 @@ export default function App() {
           ...current,
           units: nextUnits,
         });
+        logConsole("Credibility: propagated scores applied to graph");
       }
     } finally {
       setIsRunningCredibility(false);
@@ -734,38 +738,24 @@ export default function App() {
     }
     setLlmError("");
     setIsScoringClaim(true);
-    setConsoleEntries((prev) => [
-      {
-        ts: new Date().toLocaleTimeString(),
-        message: `LLM scoring requested for ${selection.id} (${llmProvider}/${llmModel})`,
-      },
-      ...prev,
-    ]);
+    logConsole(`LLM scoring: ${selection.id} (${llmProvider}/${llmModel})`);
     try {
       const result = await scoreClaimConfidence(graphId, selection.id, {
         provider: llmProvider,
         model: llmModel,
       });
       setLlmResult(result);
-      setConsoleEntries((prev) => [
-        {
-          ts: new Date().toLocaleTimeString(),
-          message: `LLM score received for ${selection.id} (${result.score.toFixed(2)})`,
-        },
-        ...prev,
-      ]);
+      logConsole(
+        `LLM scoring: ${selection.id} score ${result.score.toFixed(2)} (${result.score_source ?? "llm"})`,
+      );
       const data = await getGraph(graphId);
       setGraph(data.payload as GraphData);
       await handleRunCredibility();
     } catch (error) {
       setLlmError(error instanceof Error ? error.message : "LLM scoring failed.");
-      setConsoleEntries((prev) => [
-        {
-          ts: new Date().toLocaleTimeString(),
-          message: `LLM scoring failed: ${error instanceof Error ? error.message : "unknown error"}`,
-        },
-        ...prev,
-      ]);
+      logConsole(
+        `LLM scoring failed: ${error instanceof Error ? error.message : "unknown error"}`,
+      );
     } finally {
       setIsScoringClaim(false);
     }
@@ -788,9 +778,15 @@ export default function App() {
     try {
       const result = await runReasoning(graphId, { semantics });
       setReasoning(result);
+      logConsole(
+        `Reasoning: ${semantics} returned ${result.extensions?.length ?? 0} extensions`,
+      );
     } catch (error) {
       setReasoningError(
         error instanceof Error ? error.message : "Reasoning failed.",
+      );
+      logConsole(
+        `Reasoning failed: ${error instanceof Error ? error.message : "unknown error"}`,
       );
     }
   };
@@ -812,9 +808,13 @@ export default function App() {
         tasks: reasonerTasks,
       });
       setReasonerResults(result);
+      logConsole(`Reasoner pack: completed ${reasonerTasks.length} tasks`);
     } catch (error) {
       setReasonerError(
         error instanceof Error ? error.message : "Reasoner failed.",
+      );
+      logConsole(
+        `Reasoner pack failed: ${error instanceof Error ? error.message : "unknown error"}`,
       );
     }
   };
@@ -1379,11 +1379,17 @@ export default function App() {
                         setClaimTypeResult(response);
                         const data = await getGraph(graphId);
                         setGraph(data.payload as GraphData);
+                        logConsole(
+                          `Claim type: ${selection.id} -> ${response.claim_type} (${response.confidence ?? "n/a"})`,
+                        );
                       } catch (error) {
                         setClaimTypeError(
                           error instanceof Error
                             ? error.message
                             : "Claim type failed.",
+                        );
+                        logConsole(
+                          `Claim type failed: ${error instanceof Error ? error.message : "unknown error"}`,
                         );
                       } finally {
                         setIsClassifyingClaim(false);
@@ -1707,11 +1713,17 @@ export default function App() {
                       const data = await getGraph(graphId);
                       setGraph(data.payload as GraphData);
                       await handleRunCredibility();
+                      logConsole(
+                        `Edge validation: ${selection.id} ${response.evaluation} ${response.score.toFixed(2)}`,
+                      );
                     } catch (error) {
                       setEdgeValidationError(
                         error instanceof Error
                           ? error.message
                           : "Edge validation failed.",
+                      );
+                      logConsole(
+                        `Edge validation failed: ${error instanceof Error ? error.message : "unknown error"}`,
                       );
                     } finally {
                       setIsValidatingEdge(false);
@@ -1769,11 +1781,17 @@ export default function App() {
                         },
                       );
                       setEdgeAssumptions(response);
+                      logConsole(
+                        `Assumptions: ${selection.id} generated ${response.assumptions.length}`,
+                      );
                     } catch (error) {
                       setEdgeAssumptionsError(
                         error instanceof Error
                           ? error.message
                           : "Assumption generation failed.",
+                      );
+                      logConsole(
+                        `Assumptions failed: ${error instanceof Error ? error.message : "unknown error"}`,
                       );
                     } finally {
                       setIsGeneratingAssumptions(false);
