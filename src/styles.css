@@ -382,8 +382,8 @@ body {
 
 .button {
   width: 100%;
-  border: 1px solid #111827;
-  background: #111827;
+  border: 1px solid #1f2937;
+  background: #374151;
   color: #f9fafb;
   padding: 6px 8px;
   margin-bottom: 8px;
@@ -392,8 +392,8 @@ body {
 }
 
 .button:hover {
-  border-color: #111827;
-  box-shadow: 0 4px 12px rgba(17, 24, 39, 0.25);
+  border-color: #1f2937;
+  box-shadow: 0 4px 12px rgba(55, 65, 81, 0.25);
   transform: translateY(-1px);
 }
 
