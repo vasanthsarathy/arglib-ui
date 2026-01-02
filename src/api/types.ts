@@ -37,6 +37,18 @@ export type MiningRequest = {
   long_document?: boolean;
 };
 
+export type MiningUrlRequest = {
+  url: string;
+  doc_id?: string | null;
+  provider?: "openai" | "anthropic" | "ollama";
+  model?: string | null;
+  temperature?: number | null;
+  use_llm?: boolean;
+  long_document?: boolean;
+  include_links?: boolean;
+  max_links?: number;
+};
+
 export type ReasoningRequest = {
   semantics: "grounded" | "preferred" | "stable" | "complete" | "labelings";
 };

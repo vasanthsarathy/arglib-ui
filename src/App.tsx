@@ -8,6 +8,7 @@ import {
   fetchHealth,
   getGraph,
   parseMining,
+  parseMiningUrl,
   loadDataset,
   listEvidenceCards,
   listSupportingDocuments,
@@ -175,6 +176,8 @@ export default function App() {
   } | null>(null);
   const [miningText, setMiningText] = useState("");
   const [miningDocId, setMiningDocId] = useState("");
+  const [miningUrl, setMiningUrl] = useState("");
+  const [miningIncludeLinks, setMiningIncludeLinks] = useState(true);
   const [miningError, setMiningError] = useState("");
   const [isMining, setIsMining] = useState(false);
   const [datasetSource, setDatasetSource] = useState("");
@@ -988,6 +991,41 @@ export default function App() {
         error instanceof Error ? error.message : "Mining request failed.";
       setMiningError(message);
       logConsole(`Mining failed: ${message}`);
+    } finally {
+      setIsMining(false);
+    }
+  };
+
+  const handleMineUrl = async () => {
+    if (!miningUrl.trim()) {
+      return;
+    }
+    setMiningError("");
+    setIsMining(true);
+    logConsole(`Mining URL: ${llmProvider}/${llmModel}`);
+    try {
+      const response = await parseMiningUrl({
+        url: miningUrl.trim(),
+        doc_id: miningDocId.trim() ? miningDocId.trim() : undefined,
+        provider: llmProvider,
+        model: llmModel,
+        use_llm: true,
+        long_document: true,
+        include_links: miningIncludeLinks,
+      });
+      setGraphId(response.id);
+      setGraph(response.payload as GraphData);
+      setSelection(null);
+      setDiagnostics(null);
+      setCredibility(null);
+      setReasoning(null);
+      setReasonerResults(null);
+      logConsole(`Mining URL: graph ${response.id} created`);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Mining request failed.";
+      setMiningError(message);
+      logConsole(`Mining URL failed: ${message}`);
     } finally {
       setIsMining(false);
     }
@@ -2628,6 +2666,14 @@ export default function App() {
                 />
               </div>
               <div className="field">
+                <input
+                  className="input"
+                  placeholder="Article URL (https://...)"
+                  value={miningUrl}
+                  onChange={(event) => setMiningUrl(event.target.value)}
+                />
+              </div>
+              <div className="field">
                 <textarea
                   className="input textarea"
                   placeholder="Paste text to mine into a graph"
@@ -2643,6 +2689,23 @@ export default function App() {
                 >
                   Mine Text
                 </button>
+                <button
+                  className="button"
+                  onClick={handleMineUrl}
+                  disabled={isMining}
+                >
+                  Mine URL
+                </button>
+                <label className="list-item checkbox-row">
+                  <input
+                    type="checkbox"
+                    checked={miningIncludeLinks}
+                    onChange={(event) =>
+                      setMiningIncludeLinks(event.target.checked)
+                    }
+                  />
+                  <span>Attach link sources</span>
+                </label>
                 {isMining && <span className="status-pill">Thinking...</span>}
               </div>
               {miningError && (
