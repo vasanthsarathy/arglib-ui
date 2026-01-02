@@ -5,21 +5,21 @@
 }
 
 :root {
-  --bg: #f9fafb;
-  --ink: #111827;
-  --muted: #6b7280;
+  --bg: #ffffff;
+  --ink: #0f172a;
+  --muted: #64748b;
   --panel: #f8fafc;
-  --line: #e5e7eb;
-  --accent: #2563eb;
-  --accent-soft: #dbeafe;
-  --accent-border: #93c5fd;
-  --warn: #f59e0b;
+  --line: #e2e8f0;
+  --accent: #334155;
+  --accent-soft: #f1f5f9;
+  --accent-border: #cbd5e1;
+  --warn: #b45309;
   --warn-soft: #fef3c7;
   --warn-border: #fcd34d;
-  --ok: #16a34a;
-  --ok-soft: #dcfce7;
+  --ok: #15803d;
+  --ok-soft: #f0fdf4;
   --ok-border: #86efac;
-  --bad: #dc2626;
+  --bad: #b91c1c;
   --bad-soft: #fee2e2;
   --bad-border: #fecaca;
 }
@@ -37,6 +37,7 @@ body {
   background: var(--bg);
   color: var(--ink);
   overflow: hidden;
+  letter-spacing: -0.01em;
 }
 
 .app {
@@ -175,7 +176,7 @@ body {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
 .panel-body {
@@ -228,44 +229,20 @@ body {
   border-color: var(--accent);
 }
 
-.panel-theme-1 {
-  background: #f1f5f9;
-}
-
-.panel-theme-1 .panel-header {
-  background: #e2e8f0;
-}
-
-.panel-theme-2 {
-  background: #f0fdf4;
-}
-
-.panel-theme-2 .panel-header {
-  background: #dcfce7;
-}
-
-.panel-theme-3 {
-  background: #fff7ed;
-}
-
-.panel-theme-3 .panel-header {
-  background: #ffedd5;
-}
-
-.panel-theme-4 {
-  background: #eef2ff;
-}
-
-.panel-theme-4 .panel-header {
-  background: #e0e7ff;
-}
-
+.panel-theme-1,
+.panel-theme-2,
+.panel-theme-3,
+.panel-theme-4,
 .panel-theme-5 {
-  background: #f8fafc;
+  background: #ffffff;
 }
 
+.panel-theme-1 .panel-header,
+.panel-theme-2 .panel-header,
+.panel-theme-3 .panel-header,
+.panel-theme-4 .panel-header,
 .panel-theme-5 .panel-header {
-  background: #e2e8f0;
+  background: var(--panel);
 }
 
 .panel-theme-canvas {
@@ -387,14 +364,14 @@ body {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   color: var(--muted);
 }
 
 .button {
   width: 100%;
-  border: 1px solid var(--accent);
-  background: var(--accent);
+  border: 1px solid var(--ink);
+  background: var(--ink);
   color: #f9fafb;
   padding: 6px 8px;
   margin-bottom: 8px;
@@ -403,8 +380,8 @@ body {
 }
 
 .button:hover {
-  border-color: var(--accent);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  border-color: var(--ink);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25);
   transform: translateY(-1px);
 }
 
@@ -520,9 +497,9 @@ body {
 }
 
 .rf-node {
-  border: 1px solid #111111;
+  border: 1px solid var(--ink);
   background: #ffffff;
-  color: #111111;
+  color: var(--ink);
   font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono",
     monospace;
   font-size: 12px;
@@ -532,11 +509,13 @@ body {
   align-items: center;
   justify-content: center;
   position: relative;
+  border-radius: 2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .react-flow__node.rf-node-highlight .rf-node {
-  border-color: #f97316;
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(51, 65, 85, 0.2);
 }
 
 .rf-node-id {
@@ -707,8 +686,8 @@ body {
 
 .input:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 2px rgba(203, 213, 225, 0.35);
 }
 
 .status-pill {
