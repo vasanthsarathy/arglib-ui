@@ -117,7 +117,7 @@ export default function App() {
   const [llmProvider, setLlmProvider] = useState<
     "openai" | "anthropic" | "ollama"
   >("openai");
-  const [llmModel, setLlmModel] = useState("gpt-4o-mini");
+  const [llmModel, setLlmModel] = useState("gpt-5-mini");
   const [llmResult, setLlmResult] = useState<LLMClaimConfidenceResponse | null>(
     null,
   );
@@ -254,11 +254,11 @@ export default function App() {
 
   useEffect(() => {
     const defaults: Record<string, string> = {
-      openai: "gpt-4o-mini",
+      openai: "gpt-5-mini",
       anthropic: "claude-3-5-sonnet-20240620",
       ollama: "llama3.1",
     };
-    setLlmModel(defaults[llmProvider] ?? "gpt-4o-mini");
+    setLlmModel(defaults[llmProvider] ?? "gpt-5-mini");
   }, [llmProvider]);
 
   useEffect(() => {
