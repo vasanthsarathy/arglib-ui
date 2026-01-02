@@ -27,6 +27,16 @@ export type DatasetLoadResponse = {
   items: Array<Record<string, unknown>>;
 };
 
+export type MiningRequest = {
+  text: string;
+  doc_id?: string | null;
+  provider?: "openai" | "anthropic" | "ollama";
+  model?: string | null;
+  temperature?: number | null;
+  use_llm?: boolean;
+  long_document?: boolean;
+};
+
 export type ReasoningRequest = {
   semantics: "grounded" | "preferred" | "stable" | "complete" | "labelings";
 };

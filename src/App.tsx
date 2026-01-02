@@ -7,6 +7,7 @@ import {
   createGraph,
   fetchHealth,
   getGraph,
+  parseMining,
   loadDataset,
   listEvidenceCards,
   listSupportingDocuments,
@@ -172,11 +173,22 @@ export default function App() {
     id: string;
     data: Record<string, unknown>;
   } | null>(null);
+  const [miningText, setMiningText] = useState("");
+  const [miningDocId, setMiningDocId] = useState("");
+  const [miningError, setMiningError] = useState("");
+  const [isMining, setIsMining] = useState(false);
+  const [datasetSource, setDatasetSource] = useState("");
   const [datasetPath, setDatasetPath] = useState(
     "C:\\Users\\vasan\\Code\\arglib\\.external\\argument-mining\\processed_data\\augmented.jsonl",
   );
   const [datasetItems, setDatasetItems] = useState<
-    Array<Record<string, unknown>>
+    Array<{
+      id: string;
+      label: string;
+      payload?: GraphData;
+      raw?: Record<string, unknown>;
+      source?: string;
+    }>
   >([]);
   const [selectedDatasetId, setSelectedDatasetId] = useState("");
   const [datasetCount, setDatasetCount] = useState(0);
@@ -200,6 +212,9 @@ export default function App() {
   const [consoleEntries, setConsoleEntries] = useState<
     Array<{ ts: string; message: string }>
   >([]);
+  const graphFileRef = useRef<HTMLInputElement | null>(null);
+  const datasetFileRef = useRef<HTMLInputElement | null>(null);
+  const folderFileRef = useRef<HTMLInputElement | null>(null);
   const logConsole = (message: string) => {
     setConsoleEntries((prev) => [
       { ts: new Date().toLocaleTimeString(), message },
@@ -630,6 +645,218 @@ export default function App() {
     await updateGraph(graphId, { payload: next });
   };
 
+  const extractGraphPayload = (
+    raw: unknown,
+  ): { graph: GraphData; bundle?: Record<string, unknown> } | null => {
+    if (!raw || typeof raw !== "object") {
+      return null;
+    }
+    const record = raw as Record<string, unknown>;
+    if (record.kind === "arglib-graph-bundle" && record.payload) {
+      const payload = record.payload as Record<string, unknown>;
+      if (payload?.units && payload?.relations) {
+        return { graph: payload as GraphData, bundle: record };
+      }
+    }
+    if (record.payload) {
+      const payload = record.payload as Record<string, unknown>;
+      if (payload?.units && payload?.relations) {
+        return { graph: payload as GraphData, bundle: record };
+      }
+    }
+    if (record.graph && typeof record.graph === "object") {
+      const payload = record.graph as Record<string, unknown>;
+      if (payload?.units && payload?.relations) {
+        return { graph: payload as GraphData, bundle: record };
+      }
+    }
+    if (record.units && record.relations) {
+      return { graph: record as GraphData };
+    }
+    return null;
+  };
+
+  const applyImportedGraph = async (
+    payload: GraphData,
+    bundle?: Record<string, unknown>,
+  ) => {
+    await updateGraphState(payload);
+    if (!bundle) {
+      return;
+    }
+    if (bundle.cards && typeof bundle.cards === "object") {
+      setCards(bundle.cards as Record<string, unknown>);
+    }
+    if (bundle.docs && typeof bundle.docs === "object") {
+      setDocs(bundle.docs as Record<string, unknown>);
+    }
+    if (bundle.diagnostics) {
+      setDiagnostics(bundle.diagnostics as Diagnostics);
+    }
+    if (bundle.credibility) {
+      setCredibility(bundle.credibility as Record<string, unknown>);
+    }
+    if (bundle.reasoning) {
+      setReasoning(bundle.reasoning as ReasoningResponse);
+    }
+    if (bundle.reasoner_results) {
+      setReasonerResults(bundle.reasoner_results as ReasonerResponse);
+    }
+  };
+
+  const parseDatasetRecords = (
+    raw: unknown,
+  ): Array<Record<string, unknown>> => {
+    if (!raw) {
+      return [];
+    }
+    if (Array.isArray(raw)) {
+      return raw as Array<Record<string, unknown>>;
+    }
+    if (typeof raw === "object") {
+      const record = raw as Record<string, unknown>;
+      if (Array.isArray(record.items)) {
+        return record.items as Array<Record<string, unknown>>;
+      }
+      if (Array.isArray(record.graphs)) {
+        return record.graphs as Array<Record<string, unknown>>;
+      }
+      if (Array.isArray(record.dataset)) {
+        return record.dataset as Array<Record<string, unknown>>;
+      }
+      return [record];
+    }
+    return [];
+  };
+
+  const buildDatasetItems = (
+    records: Array<Record<string, unknown>>,
+    source: string,
+  ) => {
+    const items: Array<{
+      id: string;
+      label: string;
+      payload?: GraphData;
+      raw?: Record<string, unknown>;
+      source?: string;
+    }> = [];
+    records.forEach((record, index) => {
+      const extracted = extractGraphPayload(record);
+      const id =
+        String(record.id ?? record.graph_id ?? record.key ?? "") ||
+        `${source}-${index + 1}`;
+      const label =
+        String(record.topic ?? record.issue ?? record.title ?? "Graph") ||
+        "Graph";
+      items.push({
+        id,
+        label,
+        payload: extracted?.graph,
+        raw: record,
+        source,
+      });
+    });
+    return items;
+  };
+
+  const handleImportGraphFile = async (file: File) => {
+    setDatasetError("");
+    try {
+      const text = await file.text();
+      const raw = JSON.parse(text);
+      const extracted = extractGraphPayload(raw);
+      if (!extracted) {
+        throw new Error("File does not contain an ArgLib graph payload.");
+      }
+      await applyImportedGraph(extracted.graph, extracted.bundle);
+      logConsole(`Imported graph from ${file.name}`);
+    } catch (error) {
+      setDatasetError(
+        error instanceof Error ? error.message : "Graph import failed.",
+      );
+    } finally {
+      if (graphFileRef.current) {
+        graphFileRef.current.value = "";
+      }
+    }
+  };
+
+  const handleImportDatasetFiles = async (
+    files: FileList,
+    sourceLabel: string,
+  ) => {
+    setDatasetError("");
+    const collected: Array<Record<string, unknown>> = [];
+    try {
+      for (const file of Array.from(files)) {
+        const text = await file.text();
+        if (file.name.toLowerCase().endsWith(".jsonl")) {
+          text
+            .split("\n")
+            .map((line) => line.trim())
+            .filter(Boolean)
+            .forEach((line) => {
+              collected.push(JSON.parse(line));
+            });
+          continue;
+        }
+        const raw = JSON.parse(text);
+        const records = parseDatasetRecords(raw);
+        collected.push(...records);
+      }
+      const nextItems = buildDatasetItems(collected, sourceLabel);
+      setDatasetItems(nextItems);
+      setDatasetCount(nextItems.length);
+      setSelectedDatasetId("");
+      setDatasetSource(sourceLabel);
+      logConsole(`Imported dataset (${sourceLabel}): ${nextItems.length} graphs`);
+    } catch (error) {
+      setDatasetItems([]);
+      setDatasetCount(0);
+      setSelectedDatasetId("");
+      setDatasetSource("");
+      setDatasetError(
+        error instanceof Error ? error.message : "Dataset import failed.",
+      );
+    } finally {
+      if (datasetFileRef.current) {
+        datasetFileRef.current.value = "";
+      }
+      if (folderFileRef.current) {
+        folderFileRef.current.value = "";
+      }
+    }
+  };
+
+  const handleDownloadGraph = () => {
+    if (!graph) {
+      return;
+    }
+    const bundle = {
+      kind: "arglib-graph-bundle",
+      version: 1,
+      exported_at: new Date().toISOString(),
+      graph_id: graphId,
+      payload: graph,
+      diagnostics,
+      credibility,
+      reasoning,
+      reasoner_results: reasonerResults,
+      cards,
+      docs,
+    };
+    const blob = new Blob([JSON.stringify(bundle, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `arglib-graph-${graphId ?? "export"}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    logConsole("Exported graph bundle");
+  };
+
   const handleAddClaim = async (textOverride?: string) => {
     const current = graphRef.current;
     if (!current) {
@@ -729,6 +956,40 @@ export default function App() {
       }
     } finally {
       setIsRunningCredibility(false);
+    }
+  };
+
+  const handleMineText = async () => {
+    if (!miningText.trim()) {
+      return;
+    }
+    setMiningError("");
+    setIsMining(true);
+    logConsole(`Mining: ${llmProvider}/${llmModel}`);
+    try {
+      const response = await parseMining({
+        text: miningText,
+        doc_id: miningDocId.trim() ? miningDocId.trim() : undefined,
+        provider: llmProvider,
+        model: llmModel,
+        use_llm: true,
+        long_document: true,
+      });
+      setGraphId(response.id);
+      setGraph(response.payload as GraphData);
+      setSelection(null);
+      setDiagnostics(null);
+      setCredibility(null);
+      setReasoning(null);
+      setReasonerResults(null);
+      logConsole(`Mining: graph ${response.id} created`);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Mining request failed.";
+      setMiningError(message);
+      logConsole(`Mining failed: ${message}`);
+    } finally {
+      setIsMining(false);
     }
   };
 
@@ -1130,6 +1391,64 @@ export default function App() {
           </button>
           <div className="dataset-controls">
             <input
+              ref={graphFileRef}
+              className="hidden-input"
+              type="file"
+              accept=".json"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) {
+                  void handleImportGraphFile(file);
+                }
+              }}
+            />
+            <input
+              ref={datasetFileRef}
+              className="hidden-input"
+              type="file"
+              accept=".json,.jsonl"
+              multiple
+              onChange={(event) => {
+                if (event.target.files?.length) {
+                  void handleImportDatasetFiles(event.target.files, "file");
+                }
+              }}
+            />
+            <input
+              ref={folderFileRef}
+              className="hidden-input"
+              type="file"
+              multiple
+              // @ts-expect-error webkitdirectory is supported in Chromium-based browsers.
+              webkitdirectory=""
+              onChange={(event) => {
+                if (event.target.files?.length) {
+                  void handleImportDatasetFiles(event.target.files, "folder");
+                }
+              }}
+            />
+            <button
+              className="button button-compact"
+              onClick={() => graphFileRef.current?.click()}
+            >
+              Import Graph
+            </button>
+            <button
+              className="button button-compact"
+              onClick={() => datasetFileRef.current?.click()}
+            >
+              Import Dataset
+            </button>
+            <button
+              className="button button-compact"
+              onClick={() => folderFileRef.current?.click()}
+            >
+              Import Folder
+            </button>
+            <button className="button button-compact" onClick={handleDownloadGraph}>
+              Download Graph
+            </button>
+            <input
               className="input"
               placeholder="Dataset path"
               value={datasetPath}
@@ -1144,13 +1463,19 @@ export default function App() {
                     path: datasetPath,
                     limit: 50,
                   });
-                  setDatasetItems(response.items ?? []);
-                  setDatasetCount(response.count ?? 0);
+                  const nextItems = buildDatasetItems(
+                    response.items ?? [],
+                    "path",
+                  );
+                  setDatasetItems(nextItems);
+                  setDatasetCount(response.count ?? nextItems.length);
                   setSelectedDatasetId("");
+                  setDatasetSource("path");
                 } catch (error) {
                   setDatasetItems([]);
                   setDatasetCount(0);
                   setSelectedDatasetId("");
+                  setDatasetSource("");
                   setDatasetError(
                     error instanceof Error ? error.message : "Load failed.",
                   );
@@ -1166,9 +1491,8 @@ export default function App() {
             >
               <option value="">Select a graph</option>
               {datasetItems.map((item) => {
-                const id = String(item.id ?? "");
-                const label =
-                  String(item.topic ?? item.issue ?? "Graph") || "Graph";
+                const id = item.id;
+                const label = item.label || "Graph";
                 return (
                   <option key={id} value={id}>
                     {label} - {id}
@@ -1182,6 +1506,14 @@ export default function App() {
                 if (!selectedDatasetId) {
                   return;
                 }
+                const localItem = datasetItems.find(
+                  (item) => item.id === selectedDatasetId,
+                );
+                if (localItem?.payload) {
+                  await applyImportedGraph(localItem.payload);
+                  logConsole(`Loaded local graph: ${selectedDatasetId}`);
+                  return;
+                }
                 const data = await getGraph(selectedDatasetId);
                 setGraphId(data.id);
                 setGraph(data.payload as GraphData);
@@ -1191,7 +1523,12 @@ export default function App() {
             </button>
             <div className="dataset-status">
               {datasetError && <span>Dataset error: {datasetError}</span>}
-              {!datasetError && <span>Loaded graphs: {datasetCount}</span>}
+              {!datasetError && (
+                <span>
+                  Loaded graphs: {datasetCount}
+                  {datasetSource ? ` (${datasetSource})` : ""}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -2279,6 +2616,38 @@ export default function App() {
                   <div className="list-item">Run credibility to see scores.</div>
                 )}
               </div>
+            </div>
+            <div className="summary-section">
+              <h3>Argument Mining</h3>
+              <div className="field">
+                <input
+                  className="input"
+                  placeholder="Doc id (optional)"
+                  value={miningDocId}
+                  onChange={(event) => setMiningDocId(event.target.value)}
+                />
+              </div>
+              <div className="field">
+                <textarea
+                  className="input textarea"
+                  placeholder="Paste text to mine into a graph"
+                  value={miningText}
+                  onChange={(event) => setMiningText(event.target.value)}
+                />
+              </div>
+              <div className="summary-actions">
+                <button
+                  className="button"
+                  onClick={handleMineText}
+                  disabled={isMining}
+                >
+                  Mine Text
+                </button>
+                {isMining && <span className="status-pill">Thinking...</span>}
+              </div>
+              {miningError && (
+                <div className="list-item">Error: {miningError}</div>
+              )}
             </div>
             </div>
           </section>

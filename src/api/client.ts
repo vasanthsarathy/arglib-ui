@@ -4,6 +4,7 @@ import type {
   DatasetLoadResponse,
   GraphPayload,
   GraphResponse,
+  MiningRequest,
   ReasoningRequest,
   ReasoningResponse,
   ReasonerRequest,
@@ -179,6 +180,14 @@ export function loadDataset(
   body: DatasetLoadRequest,
 ): Promise<DatasetLoadResponse> {
   return request("/datasets/load", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export function parseMining(body: MiningRequest): Promise<GraphResponse> {
+  return request("/mining/parse", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
