@@ -985,6 +985,14 @@ export default function App() {
       setCredibility(null);
       setReasoning(null);
       setReasonerResults(null);
+      const trace = (
+        (response.payload as GraphData)?.metadata?.mining as
+          | Record<string, unknown>
+          | undefined
+      )?.trace;
+      if (Array.isArray(trace)) {
+        trace.forEach((entry) => logConsole(`Mining: ${String(entry)}`));
+      }
       logConsole(`Mining: graph ${response.id} created`);
     } catch (error) {
       const message =
@@ -1020,6 +1028,14 @@ export default function App() {
       setCredibility(null);
       setReasoning(null);
       setReasonerResults(null);
+      const trace = (
+        (response.payload as GraphData)?.metadata?.mining as
+          | Record<string, unknown>
+          | undefined
+      )?.trace;
+      if (Array.isArray(trace)) {
+        trace.forEach((entry) => logConsole(`Mining: ${String(entry)}`));
+      }
       logConsole(`Mining URL: graph ${response.id} created`);
     } catch (error) {
       const message =
