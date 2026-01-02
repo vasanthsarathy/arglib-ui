@@ -5,12 +5,23 @@
 }
 
 :root {
-  --bg: #ffffff;
-  --ink: #101010;
-  --muted: #6b6b6b;
-  --panel: #f7f7f7;
-  --line: #e0e0e0;
-  --accent: #ff6a00;
+  --bg: #f9fafb;
+  --ink: #111827;
+  --muted: #6b7280;
+  --panel: #f8fafc;
+  --line: #e5e7eb;
+  --accent: #2563eb;
+  --accent-soft: #dbeafe;
+  --accent-border: #93c5fd;
+  --warn: #f59e0b;
+  --warn-soft: #fef3c7;
+  --warn-border: #fcd34d;
+  --ok: #16a34a;
+  --ok-soft: #dcfce7;
+  --ok-border: #86efac;
+  --bad: #dc2626;
+  --bad-soft: #fee2e2;
+  --bad-border: #fecaca;
 }
 
 html,
@@ -218,43 +229,43 @@ body {
 }
 
 .panel-theme-1 {
-  background: #f5f8ff;
+  background: #f1f5f9;
 }
 
 .panel-theme-1 .panel-header {
-  background: #e9efff;
+  background: #e2e8f0;
 }
 
 .panel-theme-2 {
-  background: #f5fbf6;
+  background: #f0fdf4;
 }
 
 .panel-theme-2 .panel-header {
-  background: #e6f6ec;
+  background: #dcfce7;
 }
 
 .panel-theme-3 {
-  background: #fff8f0;
+  background: #fff7ed;
 }
 
 .panel-theme-3 .panel-header {
-  background: #fff0de;
+  background: #ffedd5;
 }
 
 .panel-theme-4 {
-  background: #f7f4ff;
+  background: #eef2ff;
 }
 
 .panel-theme-4 .panel-header {
-  background: #ece6ff;
+  background: #e0e7ff;
 }
 
 .panel-theme-5 {
-  background: #f4fbff;
+  background: #f8fafc;
 }
 
 .panel-theme-5 .panel-header {
-  background: #e3f4ff;
+  background: #e2e8f0;
 }
 
 .panel-theme-canvas {
@@ -382,8 +393,8 @@ body {
 
 .button {
   width: 100%;
-  border: 1px solid #4b5563;
-  background: #6b7280;
+  border: 1px solid var(--accent);
+  background: var(--accent);
   color: #f9fafb;
   padding: 6px 8px;
   margin-bottom: 8px;
@@ -392,8 +403,8 @@ body {
 }
 
 .button:hover {
-  border-color: #4b5563;
-  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.25);
+  border-color: var(--accent);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
   transform: translateY(-1px);
 }
 
@@ -534,8 +545,8 @@ body {
   left: -6px;
   font-size: 10px;
   color: #4b5563;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  border: 1px solid var(--line);
   padding: 1px 4px;
   border-radius: 2px;
   pointer-events: none;
@@ -546,9 +557,9 @@ body {
   top: -9px;
   right: -6px;
   font-size: 10px;
-  color: #166534;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  color: var(--ok);
+  background: var(--ok-soft);
+  border: 1px solid var(--ok-border);
   padding: 1px 4px;
   border-radius: 2px;
   pointer-events: none;
@@ -559,9 +570,9 @@ body {
   bottom: -9px;
   right: -6px;
   font-size: 10px;
-  color: #111827;
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
   padding: 1px 4px;
   border-radius: 2px;
   pointer-events: none;
@@ -687,7 +698,7 @@ body {
 
 .input {
   border: 1px solid #cbd5f5;
-  background: #f8faff;
+  background: #ffffff;
   padding: 6px;
   font-size: 12px;
   font-family: inherit;
@@ -696,8 +707,8 @@ body {
 
 .input:focus {
   outline: none;
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
 
 .status-pill {
@@ -706,8 +717,8 @@ body {
   padding: 2px 8px;
   font-size: 11px;
   border-radius: 999px;
-  background: #fff7ed;
-  border: 1px solid #fed7aa;
+  background: var(--warn-soft);
+  border: 1px solid var(--warn-border);
   color: #9a3412;
   height: 22px;
 }
