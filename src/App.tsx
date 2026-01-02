@@ -1084,6 +1084,27 @@ export default function App() {
             <span className={`dot ${status}`}></span>
             <span>Server: {status}</span>
           </div>
+          <div className="grid">
+            <select
+              className="input"
+              value={llmProvider}
+              onChange={(event) =>
+                setLlmProvider(
+                  event.target.value as "openai" | "anthropic" | "ollama",
+                )
+              }
+            >
+              <option value="openai">OpenAI</option>
+              <option value="anthropic">Anthropic</option>
+              <option value="ollama">Ollama</option>
+            </select>
+            <input
+              className="input"
+              placeholder="Model"
+              value={llmModel}
+              onChange={(event) => setLlmModel(event.target.value)}
+            />
+          </div>
           <button className="button button-compact" onClick={resetLayouts}>
             Reset Layout
           </button>
@@ -1283,25 +1304,6 @@ export default function App() {
               <div className="panel-section">
                 <h3>LLM Claim Confidence</h3>
                 <div className="grid">
-                  <select
-                    className="input"
-                    value={llmProvider}
-                    onChange={(event) =>
-                      setLlmProvider(
-                        event.target.value as "openai" | "anthropic" | "ollama",
-                      )
-                    }
-                  >
-                    <option value="openai">OpenAI</option>
-                    <option value="anthropic">Anthropic</option>
-                    <option value="ollama">Ollama</option>
-                  </select>
-                  <input
-                    className="input"
-                    placeholder="Model"
-                    value={llmModel}
-                    onChange={(event) => setLlmModel(event.target.value)}
-                  />
                   <button className="button" onClick={handleScoreClaim}>
                     Score Claim
                   </button>
@@ -1333,25 +1335,6 @@ export default function App() {
               <div className="panel-section">
                 <h3>Claim Type (LLM)</h3>
                 <div className="grid">
-                  <select
-                    className="input"
-                    value={llmProvider}
-                    onChange={(event) =>
-                      setLlmProvider(
-                        event.target.value as "openai" | "anthropic" | "ollama",
-                      )
-                    }
-                  >
-                    <option value="openai">OpenAI</option>
-                    <option value="anthropic">Anthropic</option>
-                    <option value="ollama">Ollama</option>
-                  </select>
-                  <input
-                    className="input"
-                    placeholder="Model"
-                    value={llmModel}
-                    onChange={(event) => setLlmModel(event.target.value)}
-                  />
                   <button
                     className="button"
                     onClick={async () => {
@@ -1675,25 +1658,6 @@ export default function App() {
             <div className="panel-section">
               <h3>Edge Validation (LLM)</h3>
               <div className="grid">
-                <select
-                  className="input"
-                  value={llmProvider}
-                  onChange={(event) =>
-                    setLlmProvider(
-                      event.target.value as "openai" | "anthropic" | "ollama",
-                    )
-                  }
-                >
-                  <option value="openai">OpenAI</option>
-                  <option value="anthropic">Anthropic</option>
-                  <option value="ollama">Ollama</option>
-                </select>
-                <input
-                  className="input"
-                  placeholder="Model"
-                  value={llmModel}
-                  onChange={(event) => setLlmModel(event.target.value)}
-                />
                 <button
                   className="button"
                   onClick={async () => {
@@ -1744,25 +1708,6 @@ export default function App() {
             <div className="panel-section">
               <h3>Implicit Assumptions (LLM)</h3>
               <div className="grid">
-                <select
-                  className="input"
-                  value={llmProvider}
-                  onChange={(event) =>
-                    setLlmProvider(
-                      event.target.value as "openai" | "anthropic" | "ollama",
-                    )
-                  }
-                >
-                  <option value="openai">OpenAI</option>
-                  <option value="anthropic">Anthropic</option>
-                  <option value="ollama">Ollama</option>
-                </select>
-                <input
-                  className="input"
-                  placeholder="Model"
-                  value={llmModel}
-                  onChange={(event) => setLlmModel(event.target.value)}
-                />
                 <input
                   className="input"
                   type="number"
